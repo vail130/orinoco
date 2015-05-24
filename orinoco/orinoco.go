@@ -1,17 +1,19 @@
 package main
 
-import "fmt"
-import "os"
+import (
+	"fmt"
+	"os"
 
-import "../sieve"
-import "../tap"
+	"../sieve"
+	"../tap"
+)
 
 func help() {
 	fmt.Println("usage: orinoco <command> [<args>]")
 	fmt.Println("")
 	fmt.Println("These are valid commands:")
-	fmt.Println("  sieve   Data stream analysis service with HTTP API")
-	fmt.Println("  tap     Client to connect to sieve")
+	fmt.Println("  sieve   Data stream pub-sub server")
+	fmt.Println("  tap     Data stream client")
 	fmt.Println("")
 }
 
@@ -21,10 +23,16 @@ func main() {
 		os.Exit(0)
 	}
 
+	// TODO Get port from command line flag
+	port := "9966"
+	if port == "" {
+		port = "9966"
+	}
+
 	if os.Args[1] == "sieve" {
-		sieve.Sieve()
+		sieve.Sieve(port)
 	} else if os.Args[1] == "tap" {
-		tap.Tap()
+		tap.Tap(port)
 	} else {
 		help()
 	}
