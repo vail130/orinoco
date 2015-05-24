@@ -1,2 +1,2 @@
-# orinoco
-Event stream management system
+# Orinoco
+A data stream management system micro-service.
