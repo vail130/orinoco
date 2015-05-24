@@ -3,49 +3,21 @@ package sieve
 import (
 	"bytes"
 	"io/ioutil"
-	"log"
-	"net"
 	"net/http"
-	"sync"
+	"strconv"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
 
-var ActiveClients = make(map[ClientConn]int)
-var ActiveClientsRWMutex sync.RWMutex
-
-type ClientConn struct {
-	websocket *websocket.Conn
-	clientIP  net.Addr
-}
-
-func addClient(cc ClientConn) {
-	ActiveClientsRWMutex.Lock()
-	ActiveClients[cc] = 0
-	ActiveClientsRWMutex.Unlock()
-}
-
-func deleteClient(cc ClientConn) {
-	ActiveClientsRWMutex.Lock()
-	delete(ActiveClients, cc)
-	ActiveClientsRWMutex.Unlock()
-}
-
-func broadcastMessage(messageType int, message []byte) {
-	ActiveClientsRWMutex.RLock()
-	defer ActiveClientsRWMutex.RUnlock()
-
-	for client, _ := range ActiveClients {
-		if err := client.websocket.WriteMessage(messageType, message); err != nil {
-			return
-		}
-	}
-}
+//		            event       hour     minute   second  count
+var eventMap = make(map[string](map[int](map[int](map[int]int))))
 
 func Sieve(port string) {
 	r := mux.NewRouter()
-	r.HandleFunc("/events/{event}", EventHandler).Methods("POST")
+	r.HandleFunc("/events/{event}", GetEventHandler).Methods("GET")
+	r.HandleFunc("/events/{event}", PostEventHandler).Methods("POST")
 	r.HandleFunc("/subscribe", SubscribeHandler)
 	http.Handle("/", r)
 
@@ -60,35 +32,67 @@ func Sieve(port string) {
 	}
 }
 
-func EventHandler(w http.ResponseWriter, r *http.Request) {
+func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	event := vars["event"]
-
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		return
+	
+	eventCount := 0
+	
+	if _, ok := eventMap[event]; ok == true {
+		for _, minuteMap := range eventMap[event] {
+			for _, secondMap := range minuteMap {
+				for _, count := range secondMap {
+					eventCount += count
+				}
+			}
+		}
 	}
 	
-	event_data := append([]byte(event), []byte(": ")...)
-	event_data = append(event_data, data...)
-
-	broadcastMessage(websocket.TextMessage, event_data)
+	w.Write([]byte(strconv.Itoa(eventCount)))
 }
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin:     func(r *http.Request) bool { return true },
-}
+func PostEventHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	event := vars["event"]
+	
+	t := time.Now()
+	hourMap, ok := eventMap[event]
+	if ok == false {
+		eventMap[event] = make(map[int](map[int](map[int]int)))
+		hourMap = eventMap[event]
+	}
+	
+	minuteMap, ok := hourMap[t.Hour()]
+	if ok == false {
+		hourMap[t.Hour()] = make(map[int](map[int]int))
+		minuteMap = hourMap[t.Hour()]
+	}
+	
+	secondMap, ok := minuteMap[t.Minute()]
+	if ok == false {
+		minuteMap[t.Minute()] = make(map[int]int)
+		secondMap = minuteMap[t.Minute()]
+	}
+	
+	_, ok = secondMap[t.Second()]
+	if ok == false {
+		secondMap[t.Second()] = 0
+	}
+	secondMap[t.Second()] += 1
 
-func SubscribeHandler(w http.ResponseWriter, r *http.Request) {
-	ws, err := upgrader.Upgrade(w, r, nil)
+	defer r.Body.Close()
+	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(err)
-		return
+		data = make([]byte, 0)
 	}
 
-	client := ws.RemoteAddr()
-	sockCli := ClientConn{ws, client}
-	addClient(sockCli)
+	var buffer bytes.Buffer
+	buffer.WriteString(t.Format(time.RFC3339))
+	buffer.WriteString(" ")
+	buffer.WriteString(event)
+	buffer.WriteString(" ")
+	buffer.WriteString(string(data))
+	event_data := buffer.String()
+
+	broadcastMessage(websocket.TextMessage, []byte(event_data))
 }
