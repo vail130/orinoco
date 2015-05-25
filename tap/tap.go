@@ -9,10 +9,8 @@ import (
 	"../stringutils"
 )
 
-func Tap(port string) {
-	origin := "http://localhost/"	
-	url := stringutils.Concat("ws://localhost:", port, "/subscribe")
-
+func Tap(host string, origin string) {
+	url := stringutils.Concat(host, "/subscribe")
 	ws, err := websocket.Dial(url, "", origin)
 	if err != nil {
 		log.Fatal(err)
