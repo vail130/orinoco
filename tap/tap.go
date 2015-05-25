@@ -1,6 +1,7 @@
 package tap
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"os"
@@ -11,41 +12,61 @@ import (
 	"../stringutils"
 )
 
-func Tap(host string, origin string, logPath string) {
-	url := stringutils.Concat(host, "/subscribe")
+var loggingPermissions os.FileMode = 0666
+
+func logMessage(message []byte, logPath string) {
+	if len(logPath) > 0 {
+		if f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, loggingPermissions); err == nil {
+			f.Write(append(message, []byte("\n")...))
+			f.Close()
+		}
+	} else {
+		fmt.Println(string(message))
+	}
+}
 	
+func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
+	boundaryBytes := []byte(boundary)
+	var leftoverMessage []byte
+	
+	for {
+		fullMessage := leftoverMessage
+		leftoverMessage = make([]byte, 0)
+		
+		for {
+			var partialMessage = make([]byte, 2048)
+			var n int
+			n, err := ws.Read(partialMessage)
+			if err == nil {
+				fullMessage = append(fullMessage, partialMessage[:n]...)
+			}
+			
+			if bytes.Index(fullMessage, boundaryBytes) > -1 {
+				messagePieces := bytes.SplitN(fullMessage, boundaryBytes, 1)
+				fullMessage = messagePieces[0][:len(messagePieces[0])-len(boundaryBytes)]
+				if len(messagePieces) > 1 {
+					leftoverMessage = messagePieces[1]
+				}
+				break
+			}
+		}
+		
+		logMessage(fullMessage, logPath)
+	}
+}
+
+func Tap(host string, origin string, boundary string, logPath string) {
+	url := stringutils.Concat(host, "/subscribe")
 	ws, err := websocket.Dial(url, "", origin)
 	if err != nil {
 		log.Fatal(err)
 	}
 	
-	fmt.Println("Connecting to Sieve server at", host, "from origin", origin)
-	
-	var logDestination string
-	var loggingPermissions os.FileMode = 0666
-	
 	if len(logPath) > 0 {
-		logDestination = logPath
+		fmt.Println("Connecting to Sieve server at", host, "from origin", origin)
+		fmt.Println("Logging to", logPath)
 		os.MkdirAll(path.Dir(logPath), loggingPermissions)
-	} else {
-		logDestination = "standard out"
 	}
-	fmt.Println("Logging to", logDestination)
-
-	for {
-		var msg = make([]byte, 1024*2)
-		var n int
-		n, err = ws.Read(msg)
-		if err == nil {
-			eventDataString := stringutils.Concat(string(msg[:n]), "\n")
-			fmt.Print(eventDataString)
-			
-			if len(logPath) > 0 {
-				if f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, loggingPermissions); err == nil {
-					f.WriteString(eventDataString)
-					f.Close()
-				}
-			}
-		}
-	}
+	
+	readFromSocket(ws, boundary, logPath)
 }

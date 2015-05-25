@@ -10,7 +10,9 @@ import (
 	"../stringutils"
 )
 
-func Sieve(port string) {
+func Sieve(port string, boundary string, configPath string) {
+	sieveBoundary = []byte(boundary)
+	
 	r := mux.NewRouter()
 	r.HandleFunc("/events", GetAllEventsHandler).Methods("GET")
 	r.HandleFunc("/events/{event}", GetEventHandler).Methods("GET")

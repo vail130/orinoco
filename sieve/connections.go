@@ -9,6 +9,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var sieveBoundary []byte
+
 type ClientConn struct {
 	websocket *websocket.Conn
 	clientIP  net.Addr
@@ -32,6 +34,8 @@ func deleteClient(cc ClientConn) {
 func broadcastMessage(messageType int, message []byte) {
 	ActiveClientsRWMutex.RLock()
 	defer ActiveClientsRWMutex.RUnlock()
+	
+	message = append(message, sieveBoundary...)
 
 	for client, _ := range ActiveClients {
 		if err := client.websocket.WriteMessage(messageType, message); err != nil {

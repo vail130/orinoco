@@ -8,11 +8,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
-
-	"../stringutils"
 )
 
-type EventResponse struct {
+type EventSummary struct {
 	Event                    string  `json:"event"`
 	Timestamp                string  `json:"timestamp"`
 	SecondToDate             int     `json:"second_to_date"`
@@ -23,6 +21,12 @@ type EventResponse struct {
 	TrailingAveragePerSecond float32 `json:"trailing_average_per_second"`
 	TrailingAveragePerMinute float32 `json:"trailing_average_per_minute"`
 	TrailingAveragePerHour   float32 `json:"trailing_average_per_hour"`
+}
+
+type Event struct {
+	Event     string `json:"event"`
+	Timestamp string `json:"timestamp"`
+	Data      []byte `json:"data"`
 }
 
 // Reference time for formats: Mon Jan 2 15:04:05 -0700 MST 2006
@@ -70,8 +74,19 @@ func PostEventHandler(w http.ResponseWriter, r *http.Request) {
 		data = make([]byte, 0)
 	}
 
-	eventData := stringutils.Concat(t.Format(time.RFC3339), " ", event, " ", string(data))
-	broadcastMessage(websocket.TextMessage, []byte(eventData))
+	eventData := Event{
+		event,
+		t.Format(time.RFC3339),
+		data,
+	}
+
+	jsonData, err := json.Marshal(eventData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	broadcastMessage(websocket.TextMessage, jsonData)
 
 	w.WriteHeader(http.StatusCreated)
 }
@@ -102,7 +117,7 @@ func getEventMapForTime(t time.Time) map[string](map[string]int) {
 	return eventMap
 }
 
-func getEventResponse(now time.Time, eventMap map[string](map[string]int), event string) *EventResponse {
+func getEventSummary(now time.Time, eventMap map[string](map[string]int), event string) *EventSummary {
 	timeUnits := map[string]time.Duration{
 		"hour":   time.Hour,
 		"minute": time.Minute,
@@ -158,7 +173,7 @@ func getEventResponse(now time.Time, eventMap map[string](map[string]int), event
 	projectedThisMinute := float32(valuesToDate["minute"]) / float32(now.Second()+1) * float32(60)
 	projectedThisHour := float32(valuesToDate["hour"]) / float32(now.Minute()+1) * float32(60)
 
-	return &EventResponse{
+	return &EventSummary{
 		event,
 		now.Format(time.RFC3339),
 		valuesToDate["second"],
@@ -178,7 +193,7 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	eventMap := getEventMapForTime(now)
-	eventResponse := *getEventResponse(now, eventMap, event)
+	eventResponse := *getEventSummary(now, eventMap, event)
 
 	jsonData, err := json.Marshal(eventResponse)
 	if err != nil {
@@ -194,13 +209,13 @@ func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	eventMap := getEventMapForTime(now)
 
-	var eventResponses []EventResponse
+	var eventSummaries []EventSummary
 
 	for event, _ := range eventMap {
-		eventResponses = append(eventResponses, *getEventResponse(now, eventMap, event))
+		eventSummaries = append(eventSummaries, *getEventSummary(now, eventMap, event))
 	}
 
-	jsonData, err := json.Marshal(eventResponses)
+	jsonData, err := json.Marshal(eventSummaries)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
