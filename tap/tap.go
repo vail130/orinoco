@@ -55,8 +55,8 @@ func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
 	}
 }
 
-func Tap(host string, origin string, boundary string, logPath string) {
-	url := stringutils.Concat(host, "/subscribe")
+func Tap(host string, port string, origin string, boundary string, logPath string, configPath string) {
+	url := stringutils.Concat("ws://", host, ":", port, "/subscribe")
 	ws, err := websocket.Dial(url, "", origin)
 	if err != nil {
 		log.Fatal(err)
