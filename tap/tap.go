@@ -1,21 +1,17 @@
 package tap
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 
 	"golang.org/x/net/websocket"
+	
+	"../stringutils"
 )
 
 func Tap(port string) {
-	origin := "http://localhost/"
-
-	var buffer bytes.Buffer
-	buffer.WriteString("ws://localhost:")
-	buffer.WriteString(port)
-	buffer.WriteString("/subscribe")
-	url := buffer.String()
+	origin := "http://localhost/"	
+	url := stringutils.Concat("ws://localhost:", port, "/subscribe")
 
 	ws, err := websocket.Dial(url, "", origin)
 	if err != nil {

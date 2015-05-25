@@ -26,5 +26,8 @@ _testmain.go
 # Application executable
 orinoco/orinoco
 
+# Mac
+.DS_Store
+
 # IntelliJ
 .idea

@@ -1,7 +1,6 @@
 package sieve
 
 import (
-	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -9,32 +8,112 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+
+	"../stringutils"
 )
 
 type EventResponse struct {
+	Event                    string  `json:"event"`
+	Timestamp                string  `json:"timestamp"`
 	SecondToDate             int     `json:"second_to_date"`
 	MinuteToDate             int     `json:"minute_to_date"`
 	HourToDate               int     `json:"hour_to_date"`
+	ProjectedThisMinute      float32 `json:"projected_this_minute"`
+	ProjectedThisHour        float32 `json:"projected_this_hour"`
 	TrailingAveragePerSecond float32 `json:"trailing_average_per_second"`
 	TrailingAveragePerMinute float32 `json:"trailing_average_per_minute"`
 	TrailingAveragePerHour   float32 `json:"trailing_average_per_hour"`
 }
 
-// Mon Jan 2 15:04:05 -0700 MST 2006
+// Reference time for formats: Mon Jan 2 15:04:05 -0700 MST 2006
+const dateKeyFormat = "2006-01-02"
 const hourKeyFormat = "2006-01-02-15"
 const minuteKeyFormat = "2006-01-02-15-04"
 const secondKeyFormat = "2006-01-02-15-04-05"
 
-var eventMap = make(map[string](map[string]int))
+var dateMap = make(map[string](map[string](map[string]int)))
+var dateKeyMap = make(map[string]time.Time)
 
-func GetEventHandler(w http.ResponseWriter, r *http.Request) {
+func trackEventForTime(event string, t time.Time) {
+	eventMap := getEventMapForTime(t)
+
+	dateMap, ok := eventMap[event]
+	if ok == false {
+		eventMap[event] = make(map[string]int)
+		dateMap = eventMap[event]
+	}
+
+	timeKeys := []string{
+		t.Format(hourKeyFormat),
+		t.Format(minuteKeyFormat),
+		t.Format(secondKeyFormat),
+	}
+
+	for i := 0; i < len(timeKeys); i++ {
+		if _, ok := dateMap[timeKeys[i]]; ok == false {
+			dateMap[timeKeys[i]] = 0
+		}
+		dateMap[timeKeys[i]] += 1
+	}
+}
+
+func PostEventHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	event := vars["event"]
 
-	now := time.Now()
-	hourKey := now.Format(hourKeyFormat)
-	minuteKey := now.Format(minuteKeyFormat)
-	secondKey := now.Format(secondKeyFormat)
+	t := time.Now()
+	trackEventForTime(event, t)
+
+	defer r.Body.Close()
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		data = make([]byte, 0)
+	}
+
+	eventData := stringutils.Concat(t.Format(time.RFC3339), " ", event, " ", string(data))
+	broadcastMessage(websocket.TextMessage, []byte(eventData))
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func deleteObsoleteDateKeysForTime(t time.Time) {
+	if t.Hour() >= 3 {
+		for dateKey, tt := range dateKeyMap {
+			if tt.Year() < t.Year() ||
+				(tt.Year() == t.Year() && tt.Month() < t.Month()) ||
+				(tt.Year() == t.Year() && tt.Month() == t.Month() && tt.Day() < t.Day()) {
+				delete(dateKeyMap, dateKey)
+			}
+		}
+	}
+}
+
+func getEventMapForTime(t time.Time) map[string](map[string]int) {
+	deleteObsoleteDateKeysForTime(t)
+
+	dateKey := t.Format(dateKeyFormat)
+	eventMap, ok := dateMap[dateKey]
+	if ok == false {
+		dateMap[dateKey] = make(map[string](map[string]int))
+		eventMap = dateMap[dateKey]
+		dateKeyMap[dateKey] = t
+	}
+
+	return eventMap
+}
+
+func getEventResponse(now time.Time, eventMap map[string](map[string]int), event string) *EventResponse {
+	timeUnits := map[string]time.Duration{
+		"hour":   time.Hour,
+		"minute": time.Minute,
+		"second": time.Second,
+	}
+
+	keyFormats := map[string]string{
+		"hour":   hourKeyFormat,
+		"minute": minuteKeyFormat,
+		"second": secondKeyFormat,
+	}
 
 	valuesToDate := map[string]int{
 		"hour":   0,
@@ -42,87 +121,64 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 		"second": 0,
 	}
 
-	trailingCountPerSecond := 0
-	trailingCountPerMinute := 0
-	trailingCountPerHour := 0
+	trailingCounts := map[string]int{
+		"hour":   0,
+		"minute": 0,
+		"second": 0,
+	}
 
-	if _, eventExists := eventMap[event]; eventExists {
-		if hourToDate, hourKeyExists := eventMap[event][hourKey]; hourKeyExists {
-			valuesToDate["hour"] = hourToDate
-		}
-		if minuteToDate, minuteKeyExists := eventMap[event][minuteKey]; minuteKeyExists {
-			valuesToDate["minute"] = minuteToDate
-		}
-		if secondToDate, secondKeyExists := eventMap[event][secondKey]; secondKeyExists {
-			valuesToDate["second"] = secondToDate
-		}
+	var timeKey string
 
-		// Seconds
-		oneSecondAgo := now.Add(-1 * time.Second)
-		secondKey = oneSecondAgo.Format(secondKeyFormat)
-		if secondValue, secondKeyExists := eventMap[event][secondKey]; secondKeyExists {
-			trailingCountPerSecond += secondValue
-		}
+	if timeMap, eventExists := eventMap[event]; eventExists {
+		for period, _ := range trailingCounts {
+			if periodToDate, timeKeyExists := timeMap[now.Format(keyFormats[period])]; timeKeyExists {
+				valuesToDate[period] = periodToDate
+			}
 
-		twoSecondsAgo := now.Add(-2 * time.Second)
-		secondKey = twoSecondsAgo.Format(secondKeyFormat)
-		if secondValue, secondKeyExists := eventMap[event][secondKey]; secondKeyExists {
-			trailingCountPerSecond += secondValue
-		}
+			onePeriodAgo := now.Add(-1 * timeUnits[period])
+			timeKey = onePeriodAgo.Format(keyFormats[period])
+			if timeValue, timeKeyExists := timeMap[timeKey]; timeKeyExists {
+				trailingCounts[period] += timeValue
+			}
 
-		threeSecondsAgo := now.Add(-3 * time.Second)
-		secondKey = threeSecondsAgo.Format(secondKeyFormat)
-		if secondValue, secondKeyExists := eventMap[event][secondKey]; secondKeyExists {
-			trailingCountPerSecond += secondValue
-		}
+			twoPeriodsAgo := now.Add(-2 * timeUnits[period])
+			timeKey = twoPeriodsAgo.Format(keyFormats[period])
+			if timeValue, timeKeyExists := timeMap[timeKey]; timeKeyExists {
+				trailingCounts[period] += timeValue
+			}
 
-		// Minutes
-		oneMinuteAgo := now.Add(-1 * time.Minute)
-		minuteKey = oneMinuteAgo.Format(minuteKeyFormat)
-		if minuteValue, minuteKeyExists := eventMap[event][minuteKey]; minuteKeyExists {
-			trailingCountPerMinute += minuteValue
-		}
-
-		twoMinutesAgo := now.Add(-2 * time.Minute)
-		minuteKey = twoMinutesAgo.Format(minuteKeyFormat)
-		if minuteValue, minuteKeyExists := eventMap[event][minuteKey]; minuteKeyExists {
-			trailingCountPerMinute += minuteValue
-		}
-
-		threeMinutesAgo := now.Add(-3 * time.Minute)
-		minuteKey = threeMinutesAgo.Format(minuteKeyFormat)
-		if minuteValue, minuteKeyExists := eventMap[event][minuteKey]; minuteKeyExists {
-			trailingCountPerMinute += minuteValue
-		}
-
-		// Hours
-		oneHourAgo := now.Add(-1 * time.Hour)
-		hourKey = oneHourAgo.Format(hourKeyFormat)
-		if hourValue, hourKeyExists := eventMap[event][hourKey]; hourKeyExists {
-			trailingCountPerHour += hourValue
-		}
-
-		twoHoursAgo := now.Add(-2 * time.Hour)
-		hourKey = twoHoursAgo.Format(hourKeyFormat)
-		if hourValue, hourKeyExists := eventMap[event][hourKey]; hourKeyExists {
-			trailingCountPerHour += hourValue
-		}
-
-		threeHoursAgo := now.Add(-3 * time.Hour)
-		hourKey = threeHoursAgo.Format(hourKeyFormat)
-		if hourValue, hourKeyExists := eventMap[event][hourKey]; hourKeyExists {
-			trailingCountPerHour += hourValue
+			threePeriodsAgo := now.Add(-3 * timeUnits[period])
+			timeKey = threePeriodsAgo.Format(keyFormats[period])
+			if timeValue, timeKeyExists := timeMap[timeKey]; timeKeyExists {
+				trailingCounts[period] += timeValue
+			}
 		}
 	}
 
-	eventResponse := EventResponse{
+	projectedThisMinute := float32(valuesToDate["minute"]) / float32(now.Second()+1) * float32(60)
+	projectedThisHour := float32(valuesToDate["hour"]) / float32(now.Minute()+1) * float32(60)
+
+	return &EventResponse{
+		event,
+		now.Format(time.RFC3339),
 		valuesToDate["second"],
 		valuesToDate["minute"],
 		valuesToDate["hour"],
-		float32(trailingCountPerSecond) / float32(3.0),
-		float32(trailingCountPerMinute) / float32(3.0),
-		float32(trailingCountPerHour) / float32(3.0),
+		projectedThisMinute,
+		projectedThisHour,
+		float32(trailingCounts["second"]) / float32(3.0),
+		float32(trailingCounts["minute"]) / float32(3.0),
+		float32(trailingCounts["hour"]) / float32(3.0),
 	}
+}
+
+func GetEventHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	event := vars["event"]
+
+	now := time.Now()
+	eventMap := getEventMapForTime(now)
+	eventResponse := *getEventResponse(now, eventMap, event)
 
 	jsonData, err := json.Marshal(eventResponse)
 	if err != nil {
@@ -134,55 +190,22 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func updateCountForEvent(event string, t time.Time) {
-	hourKey := t.Format(hourKeyFormat)
-	minuteKey := t.Format(minuteKeyFormat)
-	secondKey := t.Format(secondKeyFormat)
+func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
+	now := time.Now()
+	eventMap := getEventMapForTime(now)
 
-	dateMap, ok := eventMap[event]
-	if ok == false {
-		eventMap[event] = make(map[string]int)
-		dateMap = eventMap[event]
+	var eventResponses []EventResponse
+
+	for event, _ := range eventMap {
+		eventResponses = append(eventResponses, *getEventResponse(now, eventMap, event))
 	}
 
-	if _, ok := dateMap[hourKey]; ok == false {
-		dateMap[hourKey] = 0
-	}
-	dateMap[hourKey] += 1
-
-	if _, ok := dateMap[minuteKey]; ok == false {
-		dateMap[minuteKey] = 0
-	}
-	dateMap[minuteKey] += 1
-
-	if _, ok := dateMap[secondKey]; ok == false {
-		dateMap[secondKey] = 0
-	}
-	dateMap[secondKey] += 1
-
-	// TODO replace eventMap with itself after filtering for relevant date keys
-}
-
-func PostEventHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	event := vars["event"]
-
-	t := time.Now()
-	updateCountForEvent(event, t)
-
-	defer r.Body.Close()
-	data, err := ioutil.ReadAll(r.Body)
+	jsonData, err := json.Marshal(eventResponses)
 	if err != nil {
-		data = make([]byte, 0)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	var buffer bytes.Buffer
-	buffer.WriteString(t.Format(time.RFC3339))
-	buffer.WriteString(" ")
-	buffer.WriteString(event)
-	buffer.WriteString(" ")
-	buffer.WriteString(string(data))
-	event_data := buffer.String()
-
-	broadcastMessage(websocket.TextMessage, []byte(event_data))
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
 }

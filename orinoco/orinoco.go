@@ -12,7 +12,7 @@ func help() {
 	fmt.Println("usage: orinoco <command> [<args>]")
 	fmt.Println("")
 	fmt.Println("These are valid commands:")
-	fmt.Println("  sieve   Data stream pub-sub server")
+	fmt.Println("  sieve   Data stream stats and pub-sub server")
 	fmt.Println("  tap     Data stream client")
 	fmt.Println("")
 }
