@@ -1,7 +1,9 @@
 package sieve
 
 import (
+	"fmt"
 	"net/http"
+	"syscall"
 
 	"github.com/gorilla/mux"
 	
@@ -16,12 +18,12 @@ func Sieve(port string) {
 	r.HandleFunc("/subscribe", SubscribeHandler)
 	http.Handle("/", r)
 	
+	fmt.Println("Running Sieve server on port", port)
+	
 	port = stringutils.Concat(":", port)
 
 	err := http.ListenAndServe(port, nil)
-	if err != nil {
+	if err != nil && err != syscall.EPIPE {
 		panic("ListenAndServe: " + err.Error())
 	}
 }
-
-
