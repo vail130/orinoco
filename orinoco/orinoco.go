@@ -18,7 +18,7 @@ var (
 	tapApp = app.Command("tap", "Run a data stream client.")
 	host = tapApp.Flag("host", "Sieve host to connect to.").Short('h').Default("ws://localhost:9966").String()
 	origin = tapApp.Flag("origin", "Origin from which to connect to sieve.").Short('o').Default("http://localhost/").String()
-	logDir = tapApp.Flag("logdir", "Directory in which to save stream data to files. Omitting this flag will log to standard out.").Short('l').String()
+	logPath = tapApp.Flag("logpath", "File to log data stream to. Omitting this flag will log to standard out.").Short('l').String()
 )
 
 func main() {
@@ -30,6 +30,6 @@ func main() {
 		sieve.Sieve(*port)
 		
 	case tapApp.FullCommand():
-		tap.Tap(*host, *origin, *logDir)
+		tap.Tap(*host, *origin, *logPath)
 	}
 }

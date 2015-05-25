@@ -31,3 +31,6 @@ orinoco/orinoco
 
 # IntelliJ
 .idea
+
+# Orinoco
+orinoco.log

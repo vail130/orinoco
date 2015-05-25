@@ -11,7 +11,7 @@ import (
 	"../stringutils"
 )
 
-func Tap(host string, origin string, logDir string) {
+func Tap(host string, origin string, logPath string) {
 	url := stringutils.Concat(host, "/subscribe")
 	
 	ws, err := websocket.Dial(url, "", origin)
@@ -24,9 +24,9 @@ func Tap(host string, origin string, logDir string) {
 	var logDestination string
 	var loggingPermissions os.FileMode = 0666
 	
-	if len(logDir) > 0 {
-		logDestination = logDir
-		os.MkdirAll(logDir, loggingPermissions)
+	if len(logPath) > 0 {
+		logDestination = logPath
+		os.MkdirAll(path.Dir(logPath), loggingPermissions)
 	} else {
 		logDestination = "standard out"
 	}
@@ -40,9 +40,8 @@ func Tap(host string, origin string, logDir string) {
 			eventDataString := stringutils.Concat(string(msg[:n]), "\n")
 			fmt.Print(eventDataString)
 			
-			if len(logDir) > 0 {
-				logFilePath := path.Join(logDir, "orinoco.log")
-				if f, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, loggingPermissions); err == nil {
+			if len(logPath) > 0 {
+				if f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, loggingPermissions); err == nil {
 					f.WriteString(eventDataString)
 					f.Close()
 				}
