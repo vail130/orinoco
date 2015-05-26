@@ -2,6 +2,7 @@ package stringutils
 
 import (
 	"bytes"
+	"strings"
 )
 
 func Concat(strings ...string) string {
@@ -12,4 +13,12 @@ func Concat(strings ...string) string {
     }
 	
 	return buffer.String()
+}
+
+func UnderscoreToTitle(s string) string {
+	stringParts := strings.Split(s, "_")
+	for i := 0; i < len(stringParts); i++ {
+		stringParts[i] = strings.Title(stringParts[i])
+	}
+	return strings.Join(stringParts, "")
 }
