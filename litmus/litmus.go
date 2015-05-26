@@ -1,6 +1,7 @@
 package litmus
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -30,8 +31,26 @@ type Config struct {
 	Triggers map[string]Trigger `yaml:"triggers"`
 }
 
+type TriggerRequest struct {
+	Event   string  `json:"event"`
+	Trigger Trigger `json:"trigger"`
+	Value   float64 `json:"value"`
+}
+
 func triggerEvent(event string, trigger Trigger, metricValue float64) {
 	fmt.Println("Trigger", event, trigger.Endpoint, metricValue)
+
+	triggerRequest := TriggerRequest{
+		event,
+		trigger,
+		metricValue,
+	}
+	jsonData, err := json.Marshal(triggerRequest)
+	if err != nil {
+		log.Fatal(err.Error())
+	} else {
+		http.Post(trigger.Endpoint, "application/json", bytes.NewBuffer(jsonData))
+	}
 }
 
 func getDataFromUrl(url string) []byte {

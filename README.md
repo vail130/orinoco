@@ -20,15 +20,14 @@ custom event triggers.
 host: localhost
 port: 9966
 triggers:
-  no_events:
+  trailing_average_per_minute_all_events_at_zero:
     event: "*"
     metric: trailing_average_per_minute
     condition: ==0
     endpoint: http://example.com/events
-  no_test_events:
+  trailing_average_per_hour_test_event_under_100:
     event: test_event
     metric: trailing_average_per_hour
     condition: <100
     endpoint: http://example.com/events
-
 ```
