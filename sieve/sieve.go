@@ -10,7 +10,7 @@ import (
 	"../stringutils"
 )
 
-func Sieve(port string, boundary string, configPath string) {
+func Sieve(port string, boundary string) {
 	sieveBoundary = []byte(boundary)
 	
 	r := mux.NewRouter()

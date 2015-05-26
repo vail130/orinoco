@@ -19,10 +19,16 @@ custom event triggers.
 ```yaml
 host: localhost
 port: 9966
-boundary: ____OrInOcOmEsSaGeBoUnDaRy____
+triggers:
+  no_events:
+    event: "*"
+    metric: trailing_average_per_minute
+    condition: ==0
+    endpoint: http://example.com/events
+  no_test_events:
+    event: test_event
+    metric: trailing_average_per_hour
+    condition: <100
+    endpoint: http://example.com/events
 
-litmus:
-	triggers:
-		no_events: [*, trailing_average_per_minute, ==0, http://example.com/events]
-		no_test_events: [test_event, trailing_average_per_hour, <100, http://example.com/events]
 ```

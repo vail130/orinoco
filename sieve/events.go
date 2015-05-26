@@ -193,9 +193,9 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	eventMap := getEventMapForTime(now)
-	eventResponse := *getEventSummary(now, eventMap, event)
+	eventSummary := *getEventSummary(now, eventMap, event)
 
-	jsonData, err := json.Marshal(eventResponse)
+	jsonData, err := json.Marshal(eventSummary)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
