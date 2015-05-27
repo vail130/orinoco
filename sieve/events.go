@@ -21,6 +21,9 @@ type EventSummary struct {
 	TrailingAveragePerSecond float32 `json:"trailing_average_per_second"`
 	TrailingAveragePerMinute float32 `json:"trailing_average_per_minute"`
 	TrailingAveragePerHour   float32 `json:"trailing_average_per_hour"`
+	ChangePerSecond          int     `json:"change_per_second"`
+	ChangePerMinute          int     `json:"change_per_minute"`
+	ChangePerHour            int     `json:"change_per_hour"`
 }
 
 type Event struct {
@@ -92,13 +95,13 @@ func PostEventHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteObsoleteDateKeysForTime(t time.Time) {
-	if t.Hour() >= 3 {
-		for dateKey, tt := range dateKeyMap {
-			if tt.Year() < t.Year() ||
-				(tt.Year() == t.Year() && tt.Month() < t.Month()) ||
-				(tt.Year() == t.Year() && tt.Month() == t.Month() && tt.Day() < t.Day()) {
-				delete(dateKeyMap, dateKey)
-			}
+	// Delete date keys more than 24 hours old
+	startTime := t.AddDate(0, 0, -1)
+	for dateKey, tt := range dateKeyMap {
+		if tt.Year() < startTime.Year() ||
+			(tt.Year() == startTime.Year() && tt.Month() < startTime.Month()) ||
+			(tt.Year() == startTime.Year() && tt.Month() == startTime.Month() && tt.Day() < startTime.Day()) {
+			delete(dateKeyMap, dateKey)
 		}
 	}
 }
@@ -142,7 +145,15 @@ func getEventSummary(now time.Time, eventMap map[string](map[string]int), event 
 		"second": 0,
 	}
 
-	var timeKey string
+	changePerPeriod := map[string]int{
+		"hour":   0,
+		"minute": 0,
+		"second": 0,
+	}
+
+	var timeKey1 string
+	var timeKey2 string
+	var timeKey3 string
 
 	if timeMap, eventExists := eventMap[event]; eventExists {
 		for period, _ := range trailingCounts {
@@ -151,21 +162,31 @@ func getEventSummary(now time.Time, eventMap map[string](map[string]int), event 
 			}
 
 			onePeriodAgo := now.Add(-1 * timeUnits[period])
-			timeKey = onePeriodAgo.Format(keyFormats[period])
-			if timeValue, timeKeyExists := timeMap[timeKey]; timeKeyExists {
-				trailingCounts[period] += timeValue
+			timeKey1 = onePeriodAgo.Format(keyFormats[period])
+			timeValue1, timeKey1Exists := timeMap[timeKey1]
+			if timeKey1Exists {
+				trailingCounts[period] += timeValue1
 			}
 
 			twoPeriodsAgo := now.Add(-2 * timeUnits[period])
-			timeKey = twoPeriodsAgo.Format(keyFormats[period])
-			if timeValue, timeKeyExists := timeMap[timeKey]; timeKeyExists {
-				trailingCounts[period] += timeValue
+			timeKey2 = twoPeriodsAgo.Format(keyFormats[period])
+			timeValue2, timeKey2Exists := timeMap[timeKey2]
+			if timeKey2Exists {
+				trailingCounts[period] += timeValue2
 			}
 
 			threePeriodsAgo := now.Add(-3 * timeUnits[period])
-			timeKey = threePeriodsAgo.Format(keyFormats[period])
-			if timeValue, timeKeyExists := timeMap[timeKey]; timeKeyExists {
-				trailingCounts[period] += timeValue
+			timeKey3 = threePeriodsAgo.Format(keyFormats[period])
+			timeValue3, timeKey3Exists := timeMap[timeKey3]
+			if timeKey3Exists {
+				trailingCounts[period] += timeValue3
+			}
+
+			if timeKey1Exists {
+				changePerPeriod[period] = timeValue1
+				if timeKey2Exists {
+					changePerPeriod[period] = timeValue1 - timeValue2
+				}
 			}
 		}
 	}
@@ -184,6 +205,9 @@ func getEventSummary(now time.Time, eventMap map[string](map[string]int), event 
 		float32(trailingCounts["second"]) / float32(3.0),
 		float32(trailingCounts["minute"]) / float32(3.0),
 		float32(trailingCounts["hour"]) / float32(3.0),
+		changePerPeriod["second"],
+		changePerPeriod["minute"],
+		changePerPeriod["hour"],
 	}
 }
 
@@ -223,4 +247,10 @@ func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonData)
+}
+
+func DeleteAllEventsHandler(w http.ResponseWriter, r *http.Request) {
+	dateMap = make(map[string](map[string](map[string]int)))
+	dateKeyMap = make(map[string]time.Time)
+	w.WriteHeader(http.StatusNoContent)
 }

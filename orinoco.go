@@ -5,9 +5,9 @@ import (
 	
 	"gopkg.in/alecthomas/kingpin.v2"
 
-	"../sieve"
-	"../tap"
-	"../litmus"
+	"github.com/vail130/orinoco/sieve"
+	"github.com/vail130/orinoco/tap"
+	"github.com/vail130/orinoco/litmus"
 )
 
 const orinocoMessageBoundary = "____OrInOcOmEsSaGeBoUnDaRy____"

@@ -24,7 +24,6 @@ _testmain.go
 *.prof
 
 # Application executable
-orinoco/orinoco
 
 # Mac
 .DS_Store
@@ -33,4 +32,5 @@ orinoco/orinoco
 .idea
 
 # Orinoco
+bin
 orinoco.log

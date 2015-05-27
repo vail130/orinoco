@@ -14,8 +14,9 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"../sieve"
-	"../stringutils"
+	"github.com/vail130/orinoco/httputils"
+	"github.com/vail130/orinoco/sieve"
+	"github.com/vail130/orinoco/stringutils"
 )
 
 type Trigger struct {
@@ -53,16 +54,6 @@ func triggerEvent(event string, trigger Trigger, metricValue float64) {
 	}
 }
 
-func getDataFromUrl(url string) []byte {
-	response, err := http.Get(url)
-	defer response.Body.Close()
-	data, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		data = make([]byte, 0)
-	}
-	return data
-}
-
 func evaluateTriggerForEventSummary(event string, trigger Trigger, eventSummary sieve.EventSummary, conditionRegexp *regexp.Regexp) {
 	if trigger.Event == "*" || eventSummary.Event == trigger.Event {
 		fieldName := stringutils.UnderscoreToTitle(trigger.Metric)
@@ -91,7 +82,10 @@ func monitorSieve(url string, triggerMap map[string]Trigger) {
 	conditionRegexp, _ := regexp.Compile(`([=<>]+)([0-9.]+)`)
 
 	for {
-		data := getDataFromUrl(url)
+		data, err := httputils.GetDataFromUrl(url)
+		if err != nil {
+			data = make([]byte, 0)
+		}
 
 		var eventSummaries []sieve.EventSummary
 		json.Unmarshal(data, &eventSummaries)

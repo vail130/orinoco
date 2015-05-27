@@ -9,7 +9,7 @@ import (
 
 	"golang.org/x/net/websocket"
 	
-	"../stringutils"
+	"github.com/vail130/orinoco/stringutils"
 )
 
 var loggingPermissions os.FileMode = 0666
@@ -63,8 +63,6 @@ func Tap(host string, port string, origin string, boundary string, logPath strin
 	}
 	
 	if len(logPath) > 0 {
-		fmt.Println("Connecting to Sieve server at", host, "from origin", origin)
-		fmt.Println("Logging to", logPath)
 		os.MkdirAll(path.Dir(logPath), loggingPermissions)
 	}
 	
