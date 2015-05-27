@@ -1,0 +1,7 @@
+- Tests for sieve
+- Tests for tap
+- Tests for litmus
+- Sieve deletion of data for individual event
+- Sieve stats compared to previous day (only hour?)
+- Docker support for running tests
+- Docker support for deploying services
