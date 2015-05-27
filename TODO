@@ -1,4 +1,5 @@
 - Tests for sieve
+- Support timezones for sieve data stream tracking
 - Tests for tap
 - Tests for litmus
 - Sieve deletion of data for individual event
