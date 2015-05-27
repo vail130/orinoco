@@ -131,3 +131,125 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesProjectedThisHourCorrectly(c *
 	c.Assert(eventSummary.ProjectedThisHour, check.Equals, float32(6))
 }
 
+func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingAveragePerSecondCorrectly(c *check.C) {
+	var url string
+	
+	url = "http://localhost:9966/events/test"
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:02-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:02-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:02-04:00"}`))
+	
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:00:03-04:00"
+	data, _ := httputils.GetDataFromUrl(url)
+	
+	var eventSummary sieve.EventSummary
+	json.Unmarshal(data, &eventSummary)
+	c.Assert(eventSummary.TrailingAveragePerSecond, check.Equals, float32(9) / float32(3))
+}
+
+func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingAveragePerMinuteCorrectly(c *check.C) {
+	var url string
+	
+	url = "http://localhost:9966/events/test"
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
+	
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:03:00-04:00"
+	data, _ := httputils.GetDataFromUrl(url)
+	
+	var eventSummary sieve.EventSummary
+	json.Unmarshal(data, &eventSummary)
+	c.Assert(eventSummary.TrailingAveragePerMinute, check.Equals, float32(9) / float32(3))
+}
+
+func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingAveragePerHourCorrectly(c *check.C) {
+	var url string
+	
+	url = "http://localhost:9966/events/test"
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00-04:00"}`))
+	
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T04:00:00-04:00"
+	data, _ := httputils.GetDataFromUrl(url)
+	
+	var eventSummary sieve.EventSummary
+	json.Unmarshal(data, &eventSummary)
+	c.Assert(eventSummary.TrailingAveragePerHour, check.Equals, float32(9) / float32(3))
+}
+
+func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingChangePerSecondCorrectly(c *check.C) {
+	var url string
+	
+	url = "http://localhost:9966/events/test"
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
+	
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:00:02-04:00"
+	data, _ := httputils.GetDataFromUrl(url)
+	
+	var eventSummary sieve.EventSummary
+	json.Unmarshal(data, &eventSummary)
+	c.Assert(eventSummary.ChangePerSecond, check.Equals, 2)
+}
+
+func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingChangePerMinuteCorrectly(c *check.C) {
+	var url string
+	
+	url = "http://localhost:9966/events/test"
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
+	
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:03:00-04:00"
+	data, _ := httputils.GetDataFromUrl(url)
+	
+	var eventSummary sieve.EventSummary
+	json.Unmarshal(data, &eventSummary)
+	c.Assert(eventSummary.ChangePerMinute, check.Equals, -2)
+}
+
+func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingChangePerHourCorrectly(c *check.C) {
+	var url string
+	
+	url = "http://localhost:9966/events/test"
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00-04:00"}`))
+	
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T04:00:00-04:00"
+	data, _ := httputils.GetDataFromUrl(url)
+	
+	var eventSummary sieve.EventSummary
+	json.Unmarshal(data, &eventSummary)
+	c.Assert(eventSummary.ChangePerHour, check.Equals, -1)
+}
+
