@@ -2,6 +2,7 @@ package sieve
 
 import (
 	"net/http"
+	"os"
 	"syscall"
 
 	"github.com/gorilla/mux"
@@ -9,8 +10,11 @@ import (
 	"github.com/vail130/orinoco/stringutils"
 )
 
+var isTestEnv bool
+
 func Sieve(port string, boundary string) {
 	sieveBoundary = []byte(boundary)
+	isTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
 
 	r := mux.NewRouter()
 	r.HandleFunc("/events", GetAllEventsHandler).Methods("GET")

@@ -22,3 +22,12 @@ func UnderscoreToTitle(s string) string {
 	}
 	return strings.Join(stringParts, "")
 }
+
+func StringToBool(s string) bool {
+	s = strings.ToLower(s)
+	if s == "" || s == "f" || s == "false" || s == "0" {
+		return false
+	}
+	
+	return true
+}

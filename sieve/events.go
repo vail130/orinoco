@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -41,8 +42,59 @@ const secondKeyFormat = "2006-01-02-15-04-05"
 var dateMap = make(map[string](map[string](map[string]int)))
 var dateKeyMap = make(map[string]time.Time)
 
+func PostEventHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	event := vars["event"]
+
+	defer r.Body.Close()
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		data = make([]byte, 0)
+	}
+
+	t := getTimestampForRequestData(data)
+	trackEventForTime(event, t)
+
+	eventData := Event{
+		event,
+		t.Format(time.RFC3339),
+		data,
+	}
+
+	jsonData, err := json.Marshal(eventData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	broadcastMessage(websocket.TextMessage, jsonData)
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func getTimestampForRequestData(data []byte) time.Time {
+	if !isTestEnv {
+		return time.Now()
+	}
+	
+	var f interface{}
+	err := json.Unmarshal(data, &f)
+	if err != nil {
+		return time.Now()
+	}
+	
+	if timestampString, ok := f.(map[string]interface{})["timestamp"]; ok {
+		if timestamp, err := time.Parse(time.RFC3339, timestampString.(string)); err == nil {
+			return timestamp
+		}
+	}
+	
+	return time.Now()
+}
+
 func trackEventForTime(event string, t time.Time) {
 	eventMap := getEventMapForTime(t)
+	deleteObsoleteDateKeysForTime(t)
 
 	dateMap, ok := eventMap[event]
 	if ok == false {
@@ -64,34 +116,16 @@ func trackEventForTime(event string, t time.Time) {
 	}
 }
 
-func PostEventHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	event := vars["event"]
-
-	t := time.Now()
-	trackEventForTime(event, t)
-
-	defer r.Body.Close()
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		data = make([]byte, 0)
+func getEventMapForTime(t time.Time) map[string](map[string]int) {
+	dateKey := t.Format(dateKeyFormat)
+	eventMap, ok := dateMap[dateKey]
+	if ok == false {
+		dateMap[dateKey] = make(map[string](map[string]int))
+		eventMap = dateMap[dateKey]
+		dateKeyMap[dateKey] = t
 	}
 
-	eventData := Event{
-		event,
-		t.Format(time.RFC3339),
-		data,
-	}
-
-	jsonData, err := json.Marshal(eventData)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	broadcastMessage(websocket.TextMessage, jsonData)
-
-	w.WriteHeader(http.StatusCreated)
+	return eventMap
 }
 
 func deleteObsoleteDateKeysForTime(t time.Time) {
@@ -106,18 +140,56 @@ func deleteObsoleteDateKeysForTime(t time.Time) {
 	}
 }
 
-func getEventMapForTime(t time.Time) map[string](map[string]int) {
-	deleteObsoleteDateKeysForTime(t)
+func GetEventHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	event := vars["event"]
 
-	dateKey := t.Format(dateKeyFormat)
-	eventMap, ok := dateMap[dateKey]
-	if ok == false {
-		dateMap[dateKey] = make(map[string](map[string]int))
-		eventMap = dateMap[dateKey]
-		dateKeyMap[dateKey] = t
+	now := getTimestampForSummaryRequest(r.URL.Query())
+	eventMap := getEventMapForTime(now)
+	eventSummary := *getEventSummary(now, eventMap, event)
+
+	jsonData, err := json.Marshal(eventSummary)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
-	return eventMap
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+}
+
+func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
+	now := getTimestampForSummaryRequest(r.URL.Query())
+	eventMap := getEventMapForTime(now)
+
+	var eventSummaries []EventSummary
+
+	for event, _ := range eventMap {
+		eventSummaries = append(eventSummaries, *getEventSummary(now, eventMap, event))
+	}
+
+	jsonData, err := json.Marshal(eventSummaries)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+}
+
+func getTimestampForSummaryRequest(queryValues url.Values) time.Time {
+	if !isTestEnv {
+		return time.Now()
+	}
+	
+	if timestampString, ok := queryValues["timestamp"]; ok {
+		if timestamp, err := time.Parse(time.RFC3339, timestampString[0]); err == nil {
+			return timestamp
+		}
+	}
+	
+	return time.Now()
 }
 
 func getEventSummary(now time.Time, eventMap map[string](map[string]int), event string) *EventSummary {
@@ -209,44 +281,6 @@ func getEventSummary(now time.Time, eventMap map[string](map[string]int), event 
 		changePerPeriod["minute"],
 		changePerPeriod["hour"],
 	}
-}
-
-func GetEventHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	event := vars["event"]
-
-	now := time.Now()
-	eventMap := getEventMapForTime(now)
-	eventSummary := *getEventSummary(now, eventMap, event)
-
-	jsonData, err := json.Marshal(eventSummary)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonData)
-}
-
-func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
-	now := time.Now()
-	eventMap := getEventMapForTime(now)
-
-	var eventSummaries []EventSummary
-
-	for event, _ := range eventMap {
-		eventSummaries = append(eventSummaries, *getEventSummary(now, eventMap, event))
-	}
-
-	jsonData, err := json.Marshal(eventSummaries)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonData)
 }
 
 func DeleteAllEventsHandler(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-./bin/orinoco sieve &
+TEST=1 ./bin/orinoco sieve &
 sieve_pid=$!
 
 go test ./...
