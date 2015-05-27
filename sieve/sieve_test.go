@@ -44,7 +44,7 @@ func TestSieveUsesTimestampProvidedForTestEvent(t *testing.T) {
     jsonData := []byte(stringutils.Concat(`{"timestamp":"`, timestampString, `"}`))
 	httputils.PostDataToUrl(url, "application/json", jsonData)
 	
-	url = "http://localhost:9966/events/test"
+	url = stringutils.Concat("http://localhost:9966/events/test?timestamp=", timestampString)
 	data, _ := httputils.GetDataFromUrl(url)
 	
 	var eventSummary sieve.EventSummary

@@ -146,12 +146,21 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 
 	now := getTimestampForSummaryRequest(r.URL.Query())
 	eventMap := getEventMapForTime(now)
-	eventSummary := *getEventSummary(now, eventMap, event)
+	
+	var eventSummary EventSummary
+	var jsonData []byte
+	
+	if _, ok := eventMap[event]; ok {
+		eventSummary = *getEventSummary(now, event, eventMap)
 
-	jsonData, err := json.Marshal(eventSummary)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		var err error
+		jsonData, err = json.Marshal(eventSummary)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		jsonData = []byte("null")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -165,7 +174,7 @@ func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 	var eventSummaries []EventSummary
 
 	for event, _ := range eventMap {
-		eventSummaries = append(eventSummaries, *getEventSummary(now, eventMap, event))
+		eventSummaries = append(eventSummaries, *getEventSummary(now, event, eventMap))
 	}
 
 	jsonData, err := json.Marshal(eventSummaries)
@@ -192,7 +201,7 @@ func getTimestampForSummaryRequest(queryValues url.Values) time.Time {
 	return time.Now()
 }
 
-func getEventSummary(now time.Time, eventMap map[string](map[string]int), event string) *EventSummary {
+func getEventSummary(now time.Time, event string, eventMap map[string](map[string]int)) *EventSummary {
 	timeUnits := map[string]time.Duration{
 		"hour":   time.Hour,
 		"minute": time.Minute,
