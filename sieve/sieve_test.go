@@ -4,20 +4,28 @@ import (
 	"encoding/json"
 	"testing"
 	
+	"gopkg.in/check.v1"
+	
 	"github.com/vail130/orinoco/httputils"
-	"github.com/vail130/orinoco/stringutils"
 	"github.com/vail130/orinoco/sieve"
 )
 
-func TestSieveReturnsNullWhenNoEventsHaveBeenPosted(t *testing.T) {
-    url := "http://localhost:9966/events"
-	data, _ := httputils.GetDataFromUrl(url)
-	if string(data) != "null" {
-		t.Error(stringutils.Concat(string(data), " != null"))
-	}
+func TestSieveApi(t *testing.T) { check.TestingT(t) }
+
+type SieveApiTestSuite struct{}
+var _ = check.Suite(&SieveApiTestSuite{})
+
+func (s *SieveApiTestSuite) SetUpTest(c *check.C) {
+	httputils.Delete("http://localhost:9966/events")
 }
 
-func TestSieveReturnsEventSummaryAfterReceivingData(t *testing.T) {
+func (s *SieveApiTestSuite) TestSieveReturnsNullWhenNoEventsHaveBeenPosted(c *check.C) {
+    url := "http://localhost:9966/events"
+	data, _ := httputils.GetDataFromUrl(url)
+	c.Assert(string(data), check.Equals, "null")
+}
+
+func (s *SieveApiTestSuite) TestSieveReturnsEventSummaryAfterReceivingData(c *check.C) {
 	var url string
 	
 	url = "http://localhost:9966/events/test"
@@ -30,51 +38,25 @@ func TestSieveReturnsEventSummaryAfterReceivingData(t *testing.T) {
 	var eventSummary sieve.EventSummary
 	json.Unmarshal(data, &eventSummary)
 	
-	if eventSummary.Event != "test" {
-		t.Error(stringutils.Concat(string(eventSummary.Event), " != test"))
-	}
+	c.Assert(eventSummary.Event, check.Equals, "test")
 }
 
-func TestSieveUsesTimestampProvidedForTestEvent(t *testing.T) {
-	var url string
-	
-	timestampString := "2015-05-27T09:29:13-04:00"
-	
-	url = "http://localhost:9966/events/test"
-    jsonData := []byte(stringutils.Concat(`{"timestamp":"`, timestampString, `"}`))
-	httputils.PostDataToUrl(url, "application/json", jsonData)
-	
-	url = stringutils.Concat("http://localhost:9966/events/test?timestamp=", timestampString)
-	data, _ := httputils.GetDataFromUrl(url)
-	
-	var eventSummary sieve.EventSummary
-	json.Unmarshal(data, &eventSummary)
-	
-	if eventSummary.Timestamp != timestampString {
-		t.Error(stringutils.Concat(string(eventSummary.Timestamp), " != ", timestampString))
-	}
-}
-
-func TestSieveReturnsNullForAllEventsAfterResetting(t *testing.T) {
+func (s *SieveApiTestSuite) TestSieveReturnsNullForAllEventsAfterResetting(c *check.C) {
     jsonData := []byte(`{"a":1}`)
 	httputils.PostDataToUrl("http://localhost:9966/events/test", "application/json", jsonData)
 	
 	httputils.Delete("http://localhost:9966/events")
 	
 	data, _ := httputils.GetDataFromUrl("http://localhost:9966/events")
-	if string(data) != "null" {
-		t.Error(stringutils.Concat(string(data), " != null"))
-	}
+	c.Assert(string(data), check.Equals, "null")
 }
 
-func TestSieveReturnsNullForIndividualEventAfterResetting(t *testing.T) {
+func (s *SieveApiTestSuite) TestSieveReturnsNullForIndividualEventAfterResetting(c *check.C) {
     jsonData := []byte(`{"a":1}`)
 	httputils.PostDataToUrl("http://localhost:9966/events/test", "application/json", jsonData)
 	
 	httputils.Delete("http://localhost:9966/events")
 	
 	data, _ := httputils.GetDataFromUrl("http://localhost:9966/events/test")
-	if string(data) != "null" {
-		t.Error(stringutils.Concat(string(data), " != null"))
-	}
+	c.Assert(string(data), check.Equals, "null")
 }

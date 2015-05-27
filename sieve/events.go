@@ -172,15 +172,21 @@ func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 	eventMap := getEventMapForTime(now)
 
 	var eventSummaries []EventSummary
+	var jsonData []byte
 
-	for event, _ := range eventMap {
-		eventSummaries = append(eventSummaries, *getEventSummary(now, event, eventMap))
-	}
-
-	jsonData, err := json.Marshal(eventSummaries)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	if len(eventMap) > 0 {
+		for event, _ := range eventMap {
+			eventSummaries = append(eventSummaries, *getEventSummary(now, event, eventMap))
+		}
+	
+		var err error
+		jsonData, err = json.Marshal(eventSummaries)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		jsonData = []byte("null")
 	}
 
 	w.Header().Set("Content-Type", "application/json")
