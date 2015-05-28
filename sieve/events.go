@@ -42,7 +42,7 @@ const secondKeyFormat = "2006-01-02-15-04-05"
 var dateMap = make(map[string](map[string](map[string]int)))
 var dateKeyMap = make(map[string]time.Time)
 
-func processEvent(event string, t time.Time, data []byte) {
+func processEvent(event string, t time.Time, data []byte) error {
 	trackEventForTime(event, t)
 
 	eventData := Event{
@@ -53,11 +53,12 @@ func processEvent(event string, t time.Time, data []byte) {
 
 	jsonData, err := json.Marshal(eventData)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	broadcastMessage(websocket.TextMessage, jsonData)
+	
+	return nil
 }
 
 func PostEventHandler(w http.ResponseWriter, r *http.Request) {
@@ -71,7 +72,10 @@ func PostEventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := getTimestampForRequestData(data)
-	processEvent(event, t, data)
+	err = processEvent(event, t, data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 
 	w.WriteHeader(http.StatusCreated)
 }

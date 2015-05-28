@@ -1,11 +1,13 @@
 package sieve
 
 import (
+	"net"
 	"net/http"
 	"os"
 	"syscall"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 
 	"github.com/vail130/orinoco/stringutils"
 )
@@ -15,6 +17,9 @@ var isTestEnv bool
 func Sieve(port string, boundary string) {
 	sieveBoundary = []byte(boundary)
 	isTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
+	
+	ActiveClients["subscribe"] = make(map[net.Addr]*websocket.Conn)
+	ActiveClients["publish"] = make(map[net.Addr]*websocket.Conn)
 
 	r := mux.NewRouter()
 	r.HandleFunc("/events", GetAllEventsHandler).Methods("GET")

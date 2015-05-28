@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"path"
 
-	"golang.org/x/net/websocket"
+	"github.com/gorilla/websocket"
 	
 	"github.com/vail130/orinoco/stringutils"
 )
@@ -16,7 +17,7 @@ var loggingPermissions os.FileMode = 0666
 
 func logMessage(message []byte, logPath string) {
 	if len(logPath) > 0 {
-		if f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, loggingPermissions); err == nil {
+		if f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_EXCL, loggingPermissions); err == nil {
 			f.Write(append(message, []byte("\n")...))
 			f.Close()
 		}
@@ -34,12 +35,12 @@ func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
 		leftoverMessage = make([]byte, 0)
 		
 		for {
-			var partialMessage = make([]byte, 2048)
-			var n int
-			n, err := ws.Read(partialMessage)
-			if err == nil {
-				fullMessage = append(fullMessage, partialMessage[:n]...)
+			_, partialMessage, err := ws.ReadMessage()
+			if err != nil {
+				log.Fatal(err)
 			}
+			
+			fullMessage = append(fullMessage, partialMessage...)
 			
 			if bytes.Index(fullMessage, boundaryBytes) > -1 {
 				messagePieces := bytes.SplitN(fullMessage, boundaryBytes, 1)
@@ -57,7 +58,9 @@ func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
 
 func Tap(host string, port string, origin string, boundary string, logPath string) {
 	url := stringutils.Concat("ws://", host, ":", port, "/subscribe")
-	ws, err := websocket.Dial(url, "", origin)
+	headers := make(http.Header)
+	headers["origin"] = []string{origin}
+	ws, _, err := websocket.DefaultDialer.Dial(url, headers)
 	if err != nil {
 		log.Fatal(err)
 	}

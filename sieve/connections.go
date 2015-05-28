@@ -1,11 +1,13 @@
 package sieve
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"net"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -23,8 +25,6 @@ var upgrader = websocket.Upgrader{
 
 var sieveBoundary []byte
 var ActiveClients = make(map[string](map[net.Addr]*websocket.Conn))
-ActiveClients["subscribe"] = make(map[net.Addr]*websocket.Conn)
-ActiveClients["publish"] = make(map[net.Addr]*websocket.Conn)
 var ActiveClientsRWMutex sync.RWMutex
 
 func addClient(clientType string, ws *websocket.Conn) {
@@ -43,23 +43,18 @@ func readMessage(boundary string) {
 	ActiveClientsRWMutex.RLock()
 	defer ActiveClientsRWMutex.RUnlock()
 
-	for ws, _ := range ActiveClients["publish"] {
-		messageType, messageType, err := ws.ReadMessage()
-		if err != nil {
-			log.Println(err)
-			deleteClient("publish", *ws)
-		}
-
+	for _, ws := range ActiveClients["publish"] {
 		boundaryBytes := []byte(boundary)
 		var fullMessage []byte
 		
 		for {
-			var partialMessage = make([]byte, websocketBufferSize)
-			var n int
-			n, err := ws.Read(partialMessage)
-			if err == nil {
-				fullMessage = append(fullMessage, partialMessage[:n]...)
+			_, partialMessage, err := ws.ReadMessage()
+			if err != nil {
+				log.Println(err)
+				deleteClient("publish", ws)
 			}
+			
+			fullMessage = append(fullMessage, partialMessage...)
 			
 			if bytes.Index(fullMessage, boundaryBytes) > -1 {
 				messagePieces := bytes.SplitN(fullMessage, boundaryBytes, 1)
@@ -69,8 +64,12 @@ func readMessage(boundary string) {
 		}
 		
 		var event Event
-		err := json.Unmarshal(data, &event)
-		processEvent(event.Event, event.Timestamp, event.Data)
+		err := json.Unmarshal(fullMessage, &event)
+		timestamp, err := time.Parse(time.RFC3339, event.Timestamp)
+		if err != nil {
+			timestamp = time.Now()
+		}
+		processEvent(event.Event, timestamp, event.Data)
 	}
 }
 
@@ -80,10 +79,10 @@ func broadcastMessage(messageType int, message []byte) {
 	
 	message = append(message, sieveBoundary...)
 
-	for ws, _ := range ActiveClients["subscribe"] {
+	for _, ws := range ActiveClients["subscribe"] {
 		if err := ws.WriteMessage(messageType, message); err != nil {
 			log.Println(err)
-			deleteClient("subscribe", *ws)
+			deleteClient("subscribe", ws)
 		}
 	}
 }
