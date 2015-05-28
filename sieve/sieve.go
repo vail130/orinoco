@@ -22,6 +22,7 @@ func Sieve(port string, boundary string) {
 	r.HandleFunc("/events/{event}", GetEventHandler).Methods("GET")
 	r.HandleFunc("/events/{event}", PostEventHandler).Methods("POST")
 	r.HandleFunc("/subscribe", SubscribeHandler)
+	r.HandleFunc("/publish", PublishHandler)
 	http.Handle("/", r)
 
 	port = stringutils.Concat(":", port)
