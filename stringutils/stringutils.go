@@ -7,11 +7,11 @@ import (
 
 func Concat(strings ...string) string {
 	var buffer bytes.Buffer
-	
+
 	for _, str := range strings {
 		buffer.WriteString(str)
-    }
-	
+	}
+
 	return buffer.String()
 }
 
@@ -28,6 +28,6 @@ func StringToBool(s string) bool {
 	if s == "" || s == "f" || s == "false" || s == "0" {
 		return false
 	}
-	
+
 	return true
 }

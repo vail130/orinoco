@@ -10,5 +10,4 @@ deps:
 	go get
 
 test:
-	make build
-	./scripts/run-tests.sh
+	docker run --rm -v `pwd`:/go/src/github.com/vail130/orinoco vail130/orinoco-test

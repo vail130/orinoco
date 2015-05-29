@@ -57,7 +57,7 @@ func processEvent(event string, t time.Time, data []byte) error {
 	}
 
 	broadcastMessage(websocket.TextMessage, jsonData)
-	
+
 	return nil
 }
 
@@ -84,19 +84,19 @@ func getTimestampForRequestData(data []byte) time.Time {
 	if !isTestEnv {
 		return time.Now()
 	}
-	
+
 	var f interface{}
 	err := json.Unmarshal(data, &f)
 	if err != nil {
 		return time.Now()
 	}
-	
+
 	if timestampString, ok := f.(map[string]interface{})["timestamp"]; ok {
 		if timestamp, err := time.Parse(time.RFC3339, timestampString.(string)); err == nil {
 			return timestamp
 		}
 	}
-	
+
 	return time.Now()
 }
 
@@ -154,10 +154,10 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 
 	now := getTimestampForSummaryRequest(r.URL.Query())
 	eventMap := getEventMapForTime(now)
-	
+
 	var eventSummary EventSummary
 	var jsonData []byte
-	
+
 	if _, ok := eventMap[event]; ok {
 		eventSummary = *getEventSummary(now, event, eventMap)
 
@@ -186,7 +186,7 @@ func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 		for event, _ := range eventMap {
 			eventSummaries = append(eventSummaries, *getEventSummary(now, event, eventMap))
 		}
-	
+
 		var err error
 		jsonData, err = json.Marshal(eventSummaries)
 		if err != nil {
@@ -205,13 +205,13 @@ func getTimestampForSummaryRequest(queryValues url.Values) time.Time {
 	if !isTestEnv {
 		return time.Now()
 	}
-	
+
 	if timestampString, ok := queryValues["timestamp"]; ok {
 		if timestamp, err := time.Parse(time.RFC3339, timestampString[0]); err == nil {
 			return timestamp
 		}
 	}
-	
+
 	return time.Now()
 }
 

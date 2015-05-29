@@ -9,7 +9,7 @@ import (
 	"path"
 
 	"github.com/gorilla/websocket"
-	
+
 	"github.com/vail130/orinoco/stringutils"
 )
 
@@ -29,19 +29,19 @@ func logMessage(message []byte, logPath string) {
 func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
 	boundaryBytes := []byte(boundary)
 	var leftoverMessage []byte
-	
+
 	for {
 		fullMessage := leftoverMessage
 		leftoverMessage = make([]byte, 0)
-		
+
 		for {
 			_, partialMessage, err := ws.ReadMessage()
 			if err != nil {
 				log.Fatal(err)
 			}
-			
+
 			fullMessage = append(fullMessage, partialMessage...)
-			
+
 			if bytes.Index(fullMessage, boundaryBytes) > -1 {
 				messagePieces := bytes.SplitN(fullMessage, boundaryBytes, 1)
 				fullMessage = messagePieces[0][:len(messagePieces[0])-len(boundaryBytes)]
@@ -51,7 +51,7 @@ func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
 				break
 			}
 		}
-		
+
 		logMessage(fullMessage, logPath)
 	}
 }
@@ -64,10 +64,10 @@ func Tap(host string, port string, origin string, boundary string, logPath strin
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	if len(logPath) > 0 {
 		os.MkdirAll(path.Dir(logPath), loggingPermissions)
 	}
-	
+
 	readFromSocket(ws, boundary, logPath)
 }

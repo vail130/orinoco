@@ -3,6 +3,7 @@ package sieve
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -43,26 +44,30 @@ func readMessage(boundary string) {
 	ActiveClientsRWMutex.RLock()
 	defer ActiveClientsRWMutex.RUnlock()
 
+	fmt.Println("READING MESSAGES")
+
 	for _, ws := range ActiveClients["publish"] {
 		boundaryBytes := []byte(boundary)
 		var fullMessage []byte
-		
+
 		for {
 			_, partialMessage, err := ws.ReadMessage()
 			if err != nil {
 				log.Println(err)
 				deleteClient("publish", ws)
 			}
-			
+
 			fullMessage = append(fullMessage, partialMessage...)
-			
+
+			fmt.Println(string(fullMessage))
+
 			if bytes.Index(fullMessage, boundaryBytes) > -1 {
 				messagePieces := bytes.SplitN(fullMessage, boundaryBytes, 1)
 				fullMessage = messagePieces[0][:len(messagePieces[0])-len(boundaryBytes)]
 				break
 			}
 		}
-		
+
 		var event Event
 		err := json.Unmarshal(fullMessage, &event)
 		timestamp, err := time.Parse(time.RFC3339, event.Timestamp)
@@ -76,7 +81,7 @@ func readMessage(boundary string) {
 func broadcastMessage(messageType int, message []byte) {
 	ActiveClientsRWMutex.RLock()
 	defer ActiveClientsRWMutex.RUnlock()
-	
+
 	message = append(message, sieveBoundary...)
 
 	for _, ws := range ActiveClients["subscribe"] {

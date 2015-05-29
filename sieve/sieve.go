@@ -17,7 +17,7 @@ var isTestEnv bool
 func Sieve(port string, boundary string) {
 	sieveBoundary = []byte(boundary)
 	isTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
-	
+
 	ActiveClients["subscribe"] = make(map[net.Addr]*websocket.Conn)
 	ActiveClients["publish"] = make(map[net.Addr]*websocket.Conn)
 
