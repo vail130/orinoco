@@ -31,6 +31,9 @@ PUMP_PID=$!
 ${PROJECT_DIR}/bin/orinoco tap -l ${PROJECT_DIR}/tap.log &
 TAP_PID=$!
 
+${PROJECT_DIR}/bin/orinoco litmus -c ${PROJECT_DIR}/test-fixtures/litmus/test-litmus-config.yml &
+LITMUS_PID=$!
+
 cd ${PROJECT_DIR}
 /usr/bin/go test github.com/vail130/orinoco/stringutils
 /usr/bin/go test github.com/vail130/orinoco/sliceutils
@@ -38,6 +41,6 @@ cd ${PROJECT_DIR}
 /usr/bin/go test github.com/vail130/orinoco/sieve
 /usr/bin/go test github.com/vail130/orinoco/pump
 /usr/bin/go test github.com/vail130/orinoco/tap
-#/usr/bin/go test github.com/vail130/orinoco/litmus
+/usr/bin/go test github.com/vail130/orinoco/litmus
 
-kill $PUMP_PID $SIEVE_PID $TAP_PID
+kill $PUMP_PID $SIEVE_PID $TAP_PID $LITMUS_PID

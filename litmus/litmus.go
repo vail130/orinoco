@@ -1,12 +1,9 @@
 package litmus
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -27,53 +24,77 @@ type Trigger struct {
 }
 
 type Config struct {
-	Host     string             `yaml:"host"`
-	Port     string             `yaml:"port"`
+	Url      string             `yaml:"url"`
 	Triggers map[string]Trigger `yaml:"triggers"`
 }
 
 type TriggerRequest struct {
-	Event   string  `json:"event"`
-	Trigger Trigger `json:"trigger"`
-	Value   float64 `json:"value"`
+	Event   string      `json:"event"`
+	Trigger Trigger     `json:"trigger"`
+	Value   interface{} `json:"value"`
 }
 
-func triggerEvent(event string, trigger Trigger, metricValue float64) {
-	fmt.Println("Trigger", event, trigger.Endpoint, metricValue)
-
+func triggerEvent(event string, trigger Trigger, metricValue interface{}) {
 	triggerRequest := TriggerRequest{
 		event,
 		trigger,
 		metricValue,
 	}
+
 	jsonData, err := json.Marshal(triggerRequest)
 	if err != nil {
-		log.Fatal(err.Error())
-	} else {
-		http.Post(trigger.Endpoint, "application/json", bytes.NewBuffer(jsonData))
+		log.Fatalln(err.Error())
+		return
 	}
+
+	httputils.PostDataToUrl(trigger.Endpoint, "application/json", jsonData)
 }
 
 func evaluateTriggerForEventSummary(event string, trigger Trigger, eventSummary sieve.EventSummary, conditionRegexp *regexp.Regexp) {
 	if trigger.Event == "*" || eventSummary.Event == trigger.Event {
 		fieldName := stringutils.UnderscoreToTitle(trigger.Metric)
 		reflectedValue := reflect.ValueOf(eventSummary)
-		metricValue := float64(reflectedValue.FieldByName(fieldName).Float())
+		metricInterface := reflectedValue.FieldByName(fieldName).Interface()
+		metricValueType := reflect.TypeOf(metricInterface).Name()
 
-		matches := conditionRegexp.FindAllStringSubmatch(trigger.Condition, -1)
-		num, err := strconv.ParseFloat(matches[0][2], 64)
-		if err != nil {
-			return
-		}
+		// TODO Refactor this duplicate code
 
-		condition := matches[0][1]
+		if metricValueType == "int" {
+			metricValue := int64(reflectedValue.FieldByName(fieldName).Int())
 
-		if (condition == "==" && metricValue == num) ||
-			(condition == ">" && metricValue > num) ||
-			(condition == ">=" && metricValue >= num) ||
-			(condition == "<" && metricValue < num) ||
-			(condition == "<=" && metricValue <= num) {
-			triggerEvent(event, trigger, metricValue)
+			matches := conditionRegexp.FindAllStringSubmatch(trigger.Condition, -1)
+			num, err := strconv.ParseInt(matches[0][2], 10, 64)
+			if err != nil {
+				return
+			}
+
+			condition := matches[0][1]
+			if (condition == "==" && metricValue == num) ||
+				(condition == ">" && metricValue > num) ||
+				(condition == ">=" && metricValue >= num) ||
+				(condition == "<" && metricValue < num) ||
+				(condition == "<=" && metricValue <= num) {
+				go triggerEvent(event, trigger, metricValue)
+			}
+
+		} else if metricValueType == "float" {
+			metricValue := float64(reflectedValue.FieldByName(fieldName).Float())
+
+			matches := conditionRegexp.FindAllStringSubmatch(trigger.Condition, -1)
+			num, err := strconv.ParseFloat(matches[0][2], 64)
+			if err != nil {
+				return
+			}
+
+			condition := matches[0][1]
+			if (condition == "==" && metricValue == num) ||
+				(condition == ">" && metricValue > num) ||
+				(condition == ">=" && metricValue >= num) ||
+				(condition == "<" && metricValue < num) ||
+				(condition == "<=" && metricValue <= num) {
+				go triggerEvent(event, trigger, metricValue)
+			}
+
 		}
 	}
 }
@@ -88,12 +109,14 @@ func monitorSieve(url string, triggerMap map[string]Trigger) {
 		}
 
 		var eventSummaries []sieve.EventSummary
-		json.Unmarshal(data, &eventSummaries)
+		err = json.Unmarshal(data, &eventSummaries)
+		if err != nil {
+			log.Fatalln(err)
+		}
 
 		for event, trigger := range triggerMap {
-			for j := 0; j < len(eventSummaries); j++ {
-				eventSummary := eventSummaries[j]
-				evaluateTriggerForEventSummary(event, trigger, eventSummary, conditionRegexp)
+			for i := 0; i < len(eventSummaries); i++ {
+				evaluateTriggerForEventSummary(event, trigger, eventSummaries[i], conditionRegexp)
 			}
 		}
 
@@ -101,7 +124,7 @@ func monitorSieve(url string, triggerMap map[string]Trigger) {
 	}
 }
 
-func Litmus(host string, port string, configPath string) {
+func Litmus(url string, configPath string) {
 	configData, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatal(err)
@@ -110,15 +133,9 @@ func Litmus(host string, port string, configPath string) {
 	var config Config
 	yaml.Unmarshal(configData, &config)
 
-	if host == "" {
-		host = config.Host
+	if url == "" {
+		url = config.Url
 	}
 
-	if port == "" {
-		port = config.Port
-	}
-
-	url := stringutils.Concat("http://", host, ":", port, "/events")
-
-	monitorSieve(url, config.Triggers)
+	monitorSieve(stringutils.Concat(url, "/events"), config.Triggers)
 }

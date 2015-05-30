@@ -23,7 +23,7 @@ var _ = check.Suite(&TapTestSuite{})
 
 func (s *TapTestSuite) SetUpTest(c *check.C) {
 	httputils.Delete("http://localhost:9966/events")
-	
+
 	logPath, _ := filepath.Abs("../tap.log")
 	os.Remove(logPath)
 	os.Create(logPath)
@@ -43,7 +43,7 @@ func (s *TapTestSuite) TestTapOutputsDataStreamLogFile(c *check.C) {
 	file, err := os.OpenFile(logPath, os.O_RDONLY, 0666)
 	defer file.Close()
 	c.Assert(err, check.IsNil)
-	
+
 	scanner := bufio.NewScanner(file)
 	i := 0
 	for scanner.Scan() {

@@ -1,5 +1,3 @@
-- Tests for litmus
-
 - Pump configuration to support event/file mapping
 - Support statistics on arbitrary data in stream by configuration
 - Split unit and integration tests (http://peter.bourgon.org/go-in-production/#testing-and-validation)

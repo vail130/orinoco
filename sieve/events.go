@@ -42,6 +42,34 @@ const secondKeyFormat = "2006-01-02-15-04-05"
 var dateMap = make(map[string](map[string](map[string]int)))
 var dateKeyMap = make(map[string]time.Time)
 
+func getTimestampForRequest(queryValues url.Values, data []byte) time.Time {
+	if !isTestEnv {
+		return time.Now().UTC()
+	}
+
+	if timestampString, ok := queryValues["timestamp"]; ok {
+		if timestamp, err := time.Parse(time.RFC3339, timestampString[0]); err == nil {
+			return timestamp.UTC()
+		}
+	}
+
+	if len(data) > 0 {
+		var f interface{}
+		err := json.Unmarshal(data, &f)
+		if err != nil {
+			return time.Now().UTC()
+		}
+
+		if timestampString, ok := f.(map[string]interface{})["timestamp"]; ok {
+			if timestamp, err := time.Parse(time.RFC3339, timestampString.(string)); err == nil {
+				return timestamp
+			}
+		}
+	}
+
+	return time.Now().UTC()
+}
+
 func processEvent(event string, t time.Time, data []byte) error {
 	trackEventForTime(event, t)
 
@@ -71,34 +99,14 @@ func PostEventHandler(w http.ResponseWriter, r *http.Request) {
 		data = make([]byte, 0)
 	}
 
-	t := getTimestampForRequestData(data)
-	
+	t := getTimestampForRequest(r.URL.Query(), data)
+
 	err = processEvent(event, t, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
 	w.WriteHeader(http.StatusCreated)
-}
-
-func getTimestampForRequestData(data []byte) time.Time {
-	if !isTestEnv {
-		return time.Now().UTC()
-	}
-
-	var f interface{}
-	err := json.Unmarshal(data, &f)
-	if err != nil {
-		return time.Now().UTC()
-	}
-
-	if timestampString, ok := f.(map[string]interface{})["timestamp"]; ok {
-		if timestamp, err := time.Parse(time.RFC3339, timestampString.(string)); err == nil {
-			return timestamp
-		}
-	}
-
-	return time.Now().UTC()
 }
 
 func trackEventForTime(event string, t time.Time) {
@@ -153,7 +161,7 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	event := vars["event"]
 
-	now := getTimestampForSummaryRequest(r.URL.Query())
+	now := getTimestampForRequest(r.URL.Query(), nil)
 	eventMap := getEventMapForTime(now)
 
 	var eventSummary EventSummary
@@ -177,7 +185,7 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
-	now := getTimestampForSummaryRequest(r.URL.Query())
+	now := getTimestampForRequest(r.URL.Query(), nil)
 	eventMap := getEventMapForTime(now)
 
 	var eventSummaries []EventSummary
@@ -200,20 +208,6 @@ func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(jsonData)
-}
-
-func getTimestampForSummaryRequest(queryValues url.Values) time.Time {
-	if !isTestEnv {
-		return time.Now().UTC()
-	}
-
-	if timestampString, ok := queryValues["timestamp"]; ok {
-		if timestamp, err := time.Parse(time.RFC3339, timestampString[0]); err == nil {
-			return timestamp
-		}
-	}
-
-	return time.Now().UTC()
 }
 
 func getEventSummary(now time.Time, event string, eventMap map[string](map[string]int)) *EventSummary {

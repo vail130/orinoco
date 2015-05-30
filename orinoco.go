@@ -32,8 +32,7 @@ var (
 	tapLogPath  = tapApp.Flag("logpath", "File to log data stream to. Omitting this flag will log to standard out.").Short('l').String()
 
 	litmusApp    = app.Command("litmus", "Run a data stream monitoring daemon.")
-	litmusHost   = litmusApp.Flag("host", "Sieve host to connect to.").Short('h').Default("localhost").String()
-	litmusPort   = litmusApp.Flag("port", "Port to use to connect to sieve.").Short('p').Default("9966").String()
+	litmusUrl    = litmusApp.Flag("url", "Sieve host url.").Short('u').Default("http://localhost:9966").String()
 	litmusConfig = litmusApp.Flag("config", "Path to configuration file.").Short('c').String()
 )
 
@@ -52,6 +51,6 @@ func main() {
 		tap.Tap(*tapHost, *tapPort, *tapOrigin, *tapBoundary, *tapLogPath)
 
 	case litmusApp.FullCommand():
-		litmus.Litmus(*litmusHost, *litmusPort, *litmusConfig)
+		litmus.Litmus(*litmusUrl, *litmusConfig)
 	}
 }

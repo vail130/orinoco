@@ -1,0 +1,7 @@
+url: http://localhost:9966
+triggers:
+  test_litmus_event_more_than_10_per_minute:
+    event: test_litmus
+    metric: minute_to_date
+    condition: ">10"
+    endpoint: http://localhost:9966/events/test_litmus_event_more_than_10_per_minute

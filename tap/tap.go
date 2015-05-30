@@ -22,7 +22,7 @@ func logMessage(logPath string, message []byte) {
 			log.Fatalln(err)
 			return
 		}
-		
+
 		message = sliceutils.ConcatByteSlices(message, []byte("\n"))
 		file.Write(message)
 		file.Close()
@@ -40,7 +40,7 @@ func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
 			log.Fatalln(err)
 			break
 		}
-		
+
 		message = message[:len(message)-len(boundaryBytes)]
 		logMessage(logPath, message)
 	}
