@@ -3,7 +3,6 @@ package sieve
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -40,42 +39,34 @@ func deleteClient(clientType string, ws *websocket.Conn) {
 	ActiveClientsRWMutex.Unlock()
 }
 
-func readMessage(boundary string) {
+func readMessage(ws *websocket.Conn) {
+	var fullMessage []byte
+
 	ActiveClientsRWMutex.RLock()
-	defer ActiveClientsRWMutex.RUnlock()
-
-	fmt.Println("READING MESSAGES")
-
-	for _, ws := range ActiveClients["publish"] {
-		boundaryBytes := []byte(boundary)
-		var fullMessage []byte
-
-		for {
-			_, partialMessage, err := ws.ReadMessage()
-			if err != nil {
-				log.Println(err)
-				deleteClient("publish", ws)
-			}
-
-			fullMessage = append(fullMessage, partialMessage...)
-
-			fmt.Println(string(fullMessage))
-
-			if bytes.Index(fullMessage, boundaryBytes) > -1 {
-				messagePieces := bytes.SplitN(fullMessage, boundaryBytes, 1)
-				fullMessage = messagePieces[0][:len(messagePieces[0])-len(boundaryBytes)]
-				break
-			}
-		}
-
-		var event Event
-		err := json.Unmarshal(fullMessage, &event)
-		timestamp, err := time.Parse(time.RFC3339, event.Timestamp)
+	for {
+		_, partialMessage, err := ws.ReadMessage()
 		if err != nil {
-			timestamp = time.Now()
+			log.Fatalln(err)
+			break
 		}
-		processEvent(event.Event, timestamp, event.Data)
+
+		fullMessage = append(fullMessage, partialMessage...)
+
+		if bytes.Index(fullMessage, sieveBoundary) > -1 {
+			messagePieces := bytes.SplitN(fullMessage, sieveBoundary, 1)
+			fullMessage = messagePieces[0][:len(messagePieces[0])-len(sieveBoundary)]
+			break
+		}
 	}
+	ActiveClientsRWMutex.RUnlock()
+
+	var event Event
+	err := json.Unmarshal(fullMessage, &event)
+	timestamp, err := time.Parse(time.RFC3339, event.Timestamp)
+	if err != nil {
+		timestamp = time.Now()
+	}
+	processEvent(event.Event, timestamp, event.Data)
 }
 
 func broadcastMessage(messageType int, message []byte) {
@@ -86,7 +77,7 @@ func broadcastMessage(messageType int, message []byte) {
 
 	for _, ws := range ActiveClients["subscribe"] {
 		if err := ws.WriteMessage(messageType, message); err != nil {
-			log.Println(err)
+			log.Fatalln(err)
 			deleteClient("subscribe", ws)
 		}
 	}
@@ -95,7 +86,7 @@ func broadcastMessage(messageType int, message []byte) {
 func SubscribeHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Fatalln(err)
 		return
 	}
 	addClient("subscribe", ws)
@@ -104,8 +95,12 @@ func SubscribeHandler(w http.ResponseWriter, r *http.Request) {
 func PublishHandler(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
+		log.Fatalln(err)
 		return
 	}
-	addClient("publish", ws)
+
+	for {
+		readMessage(ws)
+		time.Sleep(time.Second)
+	}
 }

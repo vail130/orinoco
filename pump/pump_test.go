@@ -11,6 +11,7 @@ import (
 
 	"github.com/vail130/orinoco/httputils"
 	"github.com/vail130/orinoco/sieve"
+	"github.com/vail130/orinoco/stringutils"
 )
 
 func TestPump(t *testing.T) { check.TestingT(t) }
@@ -25,14 +26,15 @@ func (s *PumpTestSuite) SetUpTest(c *check.C) {
 
 func (s *PumpTestSuite) TestPumpConsumesLogFile(c *check.C) {
 	logPath, _ := filepath.Abs("../pump.log")
+	now := time.Now()
+	jsonString := stringutils.Concat(`{"event":"test","timestamp":"`, now.Format(time.RFC3339), `","data":{"a":1}}`, "\n")
 	
-	if file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY, 0666); err != nil {
-		_, err := file.Write([]byte(`{"event":"test","timestamp":"","data":{"a":1}}\n`))
-		file.Close()
-		if err != nil {
-			c.Assert(err, check.IsNil)
-		}
+	file, err := os.Create(logPath)
+	if err != nil {
+		c.Assert(err, check.IsNil)
 	}
+	defer file.Close()
+	_, err = file.WriteString(jsonString)
 
 	time.Sleep(time.Second)
 
