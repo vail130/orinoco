@@ -30,7 +30,7 @@ type EventSummary struct {
 type Event struct {
 	Event     string `json:"event"`
 	Timestamp string `json:"timestamp"`
-	Data      []byte `json:"data"`
+	Data      string `json:"data"`
 }
 
 // Reference time for formats: Mon Jan 2 15:04:05 -0700 MST 2006
@@ -48,7 +48,7 @@ func processEvent(event string, t time.Time, data []byte) error {
 	eventData := Event{
 		event,
 		t.Format(time.RFC3339),
-		data,
+		string(data),
 	}
 
 	jsonData, err := json.Marshal(eventData)

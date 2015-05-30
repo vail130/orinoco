@@ -9,17 +9,23 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/vail130/orinoco/sliceutils"
 	"github.com/vail130/orinoco/stringutils"
 )
 
 var loggingPermissions os.FileMode = 0666
 
-func logMessage(message []byte, logPath string) {
+func logMessage(logPath string, message []byte) {
 	if len(logPath) > 0 {
-		if f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_EXCL, loggingPermissions); err == nil {
-			f.Write(append(message, []byte("\n")...))
-			f.Close()
+		file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND, loggingPermissions)
+		if err != nil {
+			log.Fatalln(err)
+			return
 		}
+		
+		message = sliceutils.ConcatByteSlices(message, []byte("\n"))
+		file.Write(message)
+		file.Close()
 	} else {
 		fmt.Println(string(message))
 	}
@@ -34,8 +40,9 @@ func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
 			log.Fatalln(err)
 			break
 		}
+		
 		message = message[:len(message)-len(boundaryBytes)]
-		logMessage(message, logPath)
+		logMessage(logPath, message)
 	}
 }
 
@@ -50,6 +57,7 @@ func Tap(host string, port string, origin string, boundary string, logPath strin
 
 	if len(logPath) > 0 {
 		os.MkdirAll(path.Dir(logPath), loggingPermissions)
+		os.Create(logPath)
 	}
 
 	readFromSocket(ws, boundary, logPath)

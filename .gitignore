@@ -36,3 +36,4 @@ bin
 orinoco.log
 test.log
 pump.log*
+tap.log

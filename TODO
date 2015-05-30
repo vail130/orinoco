@@ -1,24 +1,23 @@
-- Pump
-
-- Tests for sieve
-- Tests for tap
 - Tests for litmus
 
-- Global config for all services
-
+- Pump configuration to support event/file mapping
 - Support statistics on arbitrary data in stream by configuration
-- Support updating custom data tracking by API
-
+- Split unit and integration tests (http://peter.bourgon.org/go-in-production/#testing-and-validation)
 - Sieve deletion of data for individual event
-- Support timezones for sieve data stream tracking
-- Support HTTPS
 
-- Sieve stats compared to previous day (only hour?)
+===================================================
+
+- Support HTTPS
+- Support timezones for sieve data stream tracking
 
 - Support running as a cluster
 - Support transitioning the cluster
 
-- Docker support for running tests
 - Docker support for deploying services
+
+===================================================
+
+- Support updating custom data tracking by API
+- Sieve stats compared to previous day (only hour?)
 
 - Support triggers enabling after a grace period on startup
