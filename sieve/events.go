@@ -72,6 +72,7 @@ func PostEventHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := getTimestampForRequestData(data)
+	
 	err = processEvent(event, t, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -82,13 +83,13 @@ func PostEventHandler(w http.ResponseWriter, r *http.Request) {
 
 func getTimestampForRequestData(data []byte) time.Time {
 	if !isTestEnv {
-		return time.Now()
+		return time.Now().UTC()
 	}
 
 	var f interface{}
 	err := json.Unmarshal(data, &f)
 	if err != nil {
-		return time.Now()
+		return time.Now().UTC()
 	}
 
 	if timestampString, ok := f.(map[string]interface{})["timestamp"]; ok {
@@ -97,7 +98,7 @@ func getTimestampForRequestData(data []byte) time.Time {
 		}
 	}
 
-	return time.Now()
+	return time.Now().UTC()
 }
 
 func trackEventForTime(event string, t time.Time) {
@@ -203,7 +204,7 @@ func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 
 func getTimestampForSummaryRequest(queryValues url.Values) time.Time {
 	if !isTestEnv {
-		return time.Now()
+		return time.Now().UTC()
 	}
 
 	if timestampString, ok := queryValues["timestamp"]; ok {
@@ -212,7 +213,7 @@ func getTimestampForSummaryRequest(queryValues url.Values) time.Time {
 		}
 	}
 
-	return time.Now()
+	return time.Now().UTC()
 }
 
 func getEventSummary(now time.Time, event string, eventMap map[string](map[string]int)) *EventSummary {

@@ -16,12 +16,9 @@ const orinocoMessageBoundary = "____OrInOcO____"
 var (
 	app = kingpin.New("orinoco", "A data stream monitoring services.")
 
-	pumpApp      = app.Command("pump", "Run a data stream client to pump data to sieve.")
-	pumpHost     = pumpApp.Flag("host", "Sieve host to connect to.").Short('h').Default("localhost").String()
-	pumpPort     = pumpApp.Flag("port", "Port to use to connect to sieve.").Short('p').Default("9966").String()
-	pumpOrigin   = pumpApp.Flag("origin", "Origin from which to connect to sieve.").Short('o').Default("http://localhost/").String()
-	pumpBoundary = pumpApp.Flag("boundary", "Designated boundary between messages.").Short('b').Default(orinocoMessageBoundary).String()
-	pumpLogPath  = pumpApp.Flag("logpath", "Log file to consume to pump to sieve.").Short('l').String()
+	pumpApp     = app.Command("pump", "Run a data stream client to pump data to sieve.")
+	pumpLogPath = pumpApp.Flag("logpath", "Log file to consume to pump to sieve.").Short('l').String()
+	pumpUrl     = pumpApp.Flag("url", "Sieve endpoint to post events from log file.").Short('u').Default("http://localhost:9966/events/test").String()
 
 	sieveApp      = app.Command("sieve", "Run a data stream stats and pub-sub server.")
 	sievePort     = sieveApp.Flag("port", "Port for sieve to listen on.").Short('p').Default("9966").String()
@@ -46,7 +43,7 @@ func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case pumpApp.FullCommand():
-		pump.Pump(*pumpHost, *pumpPort, *pumpOrigin, *pumpBoundary, *pumpLogPath)
+		pump.Pump(*pumpLogPath, *pumpUrl)
 
 	case sieveApp.FullCommand():
 		sieve.Sieve(*sievePort, *sieveBoundary)

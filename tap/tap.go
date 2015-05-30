@@ -1,7 +1,6 @@
 package tap
 
 import (
-	"bytes"
 	"fmt"
 	"log"
 	"net/http"
@@ -28,31 +27,15 @@ func logMessage(message []byte, logPath string) {
 
 func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
 	boundaryBytes := []byte(boundary)
-	var leftoverMessage []byte
 
 	for {
-		fullMessage := leftoverMessage
-		leftoverMessage = make([]byte, 0)
-
-		for {
-			_, partialMessage, err := ws.ReadMessage()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			fullMessage = append(fullMessage, partialMessage...)
-
-			if bytes.Index(fullMessage, boundaryBytes) > -1 {
-				messagePieces := bytes.SplitN(fullMessage, boundaryBytes, 1)
-				fullMessage = messagePieces[0][:len(messagePieces[0])-len(boundaryBytes)]
-				if len(messagePieces) > 1 {
-					leftoverMessage = messagePieces[1]
-				}
-				break
-			}
+		_, message, err := ws.ReadMessage()
+		if err != nil {
+			log.Fatalln(err)
+			break
 		}
-
-		logMessage(fullMessage, logPath)
+		message = message[:len(message)-len(boundaryBytes)]
+		logMessage(message, logPath)
 	}
 }
 

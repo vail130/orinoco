@@ -24,7 +24,7 @@ func (s *SieveEventsTestSuite) SetUpTest(c *check.C) {
 func (s *SieveEventsTestSuite) TestSieveUsesTimestampProvidedForTestEvent(c *check.C) {
 	var url string
 
-	timestampString := "2015-05-27T09:29:13-04:00"
+	timestampString := "2015-05-27T09:29:13Z"
 
 	url = "http://localhost:9966/events/test"
 	jsonData := []byte(stringutils.Concat(`{"timestamp":"`, timestampString, `"}`))
@@ -42,7 +42,7 @@ func (s *SieveEventsTestSuite) TestSieveUsesTimestampProvidedForTestEvent(c *che
 func (s *SieveEventsTestSuite) TestSieveCalculatesSecondToDateCorrectly(c *check.C) {
 	var url string
 
-	timestampString := "2015-01-01T01:00:42-04:00"
+	timestampString := "2015-01-01T01:00:42Z"
 	url = "http://localhost:9966/events/test"
 	jsonData := []byte(stringutils.Concat(`{"timestamp":"`, timestampString, `"}`))
 
@@ -62,13 +62,13 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesMinuteToDateCorrectly(c *check
 	var url string
 
 	url = "http://localhost:9966/events/test"
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:15-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:22-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:38-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:42-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:15Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:22Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:38Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:42Z"}`))
 
-	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:00:50-04:00"
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:00:50Z"
 	data, _ := httputils.GetDataFromUrl(url)
 
 	var eventSummary sieve.EventSummary
@@ -80,13 +80,13 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesHourToDateCorrectly(c *check.C
 	var url string
 
 	url = "http://localhost:9966/events/test"
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:04:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:15:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:22:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:38:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:42:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:04:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:15:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:22:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:38:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:42:00Z"}`))
 
-	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:50:00-04:00"
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:50:00Z"
 	data, _ := httputils.GetDataFromUrl(url)
 
 	var eventSummary sieve.EventSummary
@@ -97,7 +97,7 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesHourToDateCorrectly(c *check.C
 func (s *SieveEventsTestSuite) TestSieveCalculatesProjectedThisMinuteCorrectly(c *check.C) {
 	var url string
 
-	timestampString := "2015-01-01T01:00:29-04:00"
+	timestampString := "2015-01-01T01:00:29Z"
 	url = "http://localhost:9966/events/test"
 	jsonData := []byte(stringutils.Concat(`{"timestamp":"`, timestampString, `"}`))
 
@@ -116,7 +116,7 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesProjectedThisMinuteCorrectly(c
 func (s *SieveEventsTestSuite) TestSieveCalculatesProjectedThisHourCorrectly(c *check.C) {
 	var url string
 
-	timestampString := "2015-01-01T01:29:00-04:00"
+	timestampString := "2015-01-01T01:29:00Z"
 	url = "http://localhost:9966/events/test"
 	jsonData := []byte(stringutils.Concat(`{"timestamp":"`, timestampString, `"}`))
 
@@ -136,17 +136,17 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingAveragePerSecondCorrec
 	var url string
 
 	url = "http://localhost:9966/events/test"
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:02-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:02-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:02-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:02Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:02Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:02Z"}`))
 
-	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:00:03-04:00"
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:00:03Z"
 	data, _ := httputils.GetDataFromUrl(url)
 
 	var eventSummary sieve.EventSummary
@@ -158,17 +158,17 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingAveragePerMinuteCorrec
 	var url string
 
 	url = "http://localhost:9966/events/test"
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00Z"}`))
 
-	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:03:00-04:00"
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:03:00Z"
 	data, _ := httputils.GetDataFromUrl(url)
 
 	var eventSummary sieve.EventSummary
@@ -180,17 +180,17 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingAveragePerHourCorrectl
 	var url string
 
 	url = "http://localhost:9966/events/test"
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00Z"}`))
 
-	url = "http://localhost:9966/events/test?timestamp=2015-01-01T04:00:00-04:00"
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T04:00:00Z"
 	data, _ := httputils.GetDataFromUrl(url)
 
 	var eventSummary sieve.EventSummary
@@ -202,14 +202,14 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingChangePerSecondCorrect
 	var url string
 
 	url = "http://localhost:9966/events/test"
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:00:01Z"}`))
 
-	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:00:02-04:00"
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:00:02Z"
 	data, _ := httputils.GetDataFromUrl(url)
 
 	var eventSummary sieve.EventSummary
@@ -221,14 +221,14 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingChangePerMinuteCorrect
 	var url string
 
 	url = "http://localhost:9966/events/test"
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:01:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T01:02:00Z"}`))
 
-	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:03:00-04:00"
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T01:03:00Z"
 	data, _ := httputils.GetDataFromUrl(url)
 
 	var eventSummary sieve.EventSummary
@@ -240,13 +240,13 @@ func (s *SieveEventsTestSuite) TestSieveCalculatesTrailingChangePerHourCorrectly
 	var url string
 
 	url = "http://localhost:9966/events/test"
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00-04:00"}`))
-	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00-04:00"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T02:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00Z"}`))
+	httputils.PostDataToUrl(url, "application/json", []byte(`{"timestamp":"2015-01-01T03:00:00Z"}`))
 
-	url = "http://localhost:9966/events/test?timestamp=2015-01-01T04:00:00-04:00"
+	url = "http://localhost:9966/events/test?timestamp=2015-01-01T04:00:00Z"
 	data, _ := httputils.GetDataFromUrl(url)
 
 	var eventSummary sieve.EventSummary
