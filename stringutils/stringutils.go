@@ -39,8 +39,8 @@ func GetBase64UUID() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	uuid := make([]byte, 16)
-    devUrandom.Read(uuid)
+	devUrandom.Read(uuid)
 	return base64.StdEncoding.EncodeToString([]byte(uuid)), nil
 }

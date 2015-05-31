@@ -48,7 +48,7 @@ func consumeLogs(logPath string, url string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	
+
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		messageData := scanner.Bytes()
@@ -69,7 +69,7 @@ func consumeLogs(logPath string, url string) {
 
 func Pump(logPath string, url string, configPath string) {
 	streams := make(map[string]string)
-	
+
 	if len(configPath) == 0 {
 		streams[logPath] = url
 	} else {

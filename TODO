@@ -1,3 +1,9 @@
+- Tap save stream to S3
+- Sieve master-slave support
+- Docker support for deploying services
+
+===================================================
+
 - Support statistics on arbitrary data in stream by configuration
 - Split unit and integration tests (http://peter.bourgon.org/go-in-production/#testing-and-validation)
 - Sieve deletion of data for individual event
@@ -7,11 +13,6 @@
 - Automate package detection for running tests
 - Support HTTPS
 - Support timezones for sieve data stream tracking
-
-- Support running as a cluster
-- Support transitioning the cluster
-
-- Docker support for deploying services
 
 ===================================================
 
