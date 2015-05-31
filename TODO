@@ -1,6 +1,6 @@
 - Tap save stream to S3
-- Sieve master-slave support
 - Docker support for deploying services
+- Sieve master-slave support
 
 ===================================================
 

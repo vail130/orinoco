@@ -19,6 +19,8 @@ type Config struct {
 	Streams map[string]string `yaml:"streams"`
 }
 
+var saveConsumedLogFiles bool
+
 func sendEventOverHttp(url string, data []byte) {
 	_, err := httputils.PostDataToUrl(url, "application/json", data)
 	if err != nil {
@@ -63,12 +65,14 @@ func consumeLogs(logPath string, url string) {
 
 	file.Close()
 
-	consumedPath := stringutils.Concat(uniquePath, ".consumed")
-	os.Rename(consumingPath, consumedPath)
+	if !saveConsumedLogFiles {
+		os.Remove(consumingPath)
+	}
 }
 
-func Pump(logPath string, url string, configPath string) {
+func Pump(logPath string, url string, configPath string, saveFiles string) {
 	streams := make(map[string]string)
+	saveConsumedLogFiles = stringutils.StringToBool(saveFiles)
 
 	if len(configPath) == 0 {
 		streams[logPath] = url

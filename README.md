@@ -13,7 +13,7 @@ Pump will consume log files and POST the data from each line to the
 associated URL.
 
 ### Configuration
-Pump can read from a YAML config file.
+Pump can read stream mappings from a YAML config file.
 
 ```yaml
 streams:
