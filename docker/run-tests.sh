@@ -48,8 +48,8 @@ sliceutils
 stringutils
 httputils
 sieve
-pump
 tap
+pump
 litmus
 EOM
 

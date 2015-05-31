@@ -29,9 +29,14 @@ func sendEventOverHttp(url string, data []byte) {
 func consumeLogs(logPath string, url string) {
 	now := time.Now()
 	unixTimeStamp := strconv.FormatInt(now.Unix(), 10)
+	base64UUID, err := stringutils.GetBase64UUID()
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	consumingPath := stringutils.Concat(logPath, ".", unixTimeStamp, ".consuming")
-	err := os.Rename(logPath, consumingPath)
+	uniquePath := stringutils.Concat(logPath, ".", unixTimeStamp, ".", base64UUID)
+	consumingPath := stringutils.Concat(uniquePath, ".consuming")
+	err = os.Rename(logPath, consumingPath)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			log.Fatalln(err)
@@ -58,7 +63,7 @@ func consumeLogs(logPath string, url string) {
 
 	file.Close()
 
-	consumedPath := stringutils.Concat(logPath, ".", unixTimeStamp, ".consumed")
+	consumedPath := stringutils.Concat(uniquePath, ".consumed")
 	os.Rename(consumingPath, consumedPath)
 }
 

@@ -8,6 +8,10 @@ statistics on the state of the stream.
 ## Pump
 A client to feed data streams to Sieve.
 
+### Data Sources
+Pump will consume log files and POST the data from each line to the
+associated URL.
+
 ### Configuration
 Pump can read from a YAML config file.
 
