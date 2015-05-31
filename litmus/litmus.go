@@ -17,7 +17,7 @@ import (
 )
 
 type Trigger struct {
-	Event     string `yaml:"event"`
+	Stream    string `yaml:"stream"`
 	Metric    string `yaml:"metric"`
 	Condition string `yaml:"condition"`
 	Endpoint  string `yaml:"endpoint"`
@@ -29,14 +29,14 @@ type Config struct {
 }
 
 type TriggerRequest struct {
-	Event   string      `json:"event"`
+	Stream  string      `json:"stream"`
 	Trigger Trigger     `json:"trigger"`
 	Value   interface{} `json:"value"`
 }
 
-func triggerEvent(event string, trigger Trigger, metricValue interface{}) {
+func triggerStream(stream string, trigger Trigger, metricValue interface{}) {
 	triggerRequest := TriggerRequest{
-		event,
+		stream,
 		trigger,
 		metricValue,
 	}
@@ -50,10 +50,10 @@ func triggerEvent(event string, trigger Trigger, metricValue interface{}) {
 	httputils.PostDataToUrl(trigger.Endpoint, "application/json", jsonData)
 }
 
-func evaluateTriggerForEventSummary(event string, trigger Trigger, eventSummary sieve.EventSummary, conditionRegexp *regexp.Regexp) {
-	if trigger.Event == "*" || eventSummary.Event == trigger.Event {
+func evaluateTriggerForStreamSummary(stream string, trigger Trigger, streamSummary sieve.StreamSummary, conditionRegexp *regexp.Regexp) {
+	if trigger.Stream == "*" || streamSummary.Stream == trigger.Stream {
 		fieldName := stringutils.UnderscoreToTitle(trigger.Metric)
-		reflectedValue := reflect.ValueOf(eventSummary)
+		reflectedValue := reflect.ValueOf(streamSummary)
 		metricInterface := reflectedValue.FieldByName(fieldName).Interface()
 		metricValueType := reflect.TypeOf(metricInterface).Name()
 
@@ -74,7 +74,7 @@ func evaluateTriggerForEventSummary(event string, trigger Trigger, eventSummary 
 				(condition == ">=" && metricValue >= num) ||
 				(condition == "<" && metricValue < num) ||
 				(condition == "<=" && metricValue <= num) {
-				go triggerEvent(event, trigger, metricValue)
+				go triggerStream(stream, trigger, metricValue)
 			}
 
 		} else if metricValueType == "float" {
@@ -92,7 +92,7 @@ func evaluateTriggerForEventSummary(event string, trigger Trigger, eventSummary 
 				(condition == ">=" && metricValue >= num) ||
 				(condition == "<" && metricValue < num) ||
 				(condition == "<=" && metricValue <= num) {
-				go triggerEvent(event, trigger, metricValue)
+				go triggerStream(stream, trigger, metricValue)
 			}
 
 		}
@@ -108,15 +108,15 @@ func monitorSieve(url string, triggerMap map[string]Trigger) {
 			data = make([]byte, 0)
 		}
 
-		var eventSummaries []sieve.EventSummary
-		err = json.Unmarshal(data, &eventSummaries)
+		var streamSummaries []sieve.StreamSummary
+		err = json.Unmarshal(data, &streamSummaries)
 		if err != nil {
 			log.Fatalln(err)
 		}
 
-		for event, trigger := range triggerMap {
-			for i := 0; i < len(eventSummaries); i++ {
-				evaluateTriggerForEventSummary(event, trigger, eventSummaries[i], conditionRegexp)
+		for stream, trigger := range triggerMap {
+			for i := 0; i < len(streamSummaries); i++ {
+				evaluateTriggerForStreamSummary(stream, trigger, streamSummaries[i], conditionRegexp)
 			}
 		}
 
@@ -137,5 +137,5 @@ func Litmus(url string, configPath string) {
 		url = config.Url
 	}
 
-	monitorSieve(stringutils.Concat(url, "/events"), config.Triggers)
+	monitorSieve(stringutils.Concat(url, "/streams"), config.Triggers)
 }

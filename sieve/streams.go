@@ -11,8 +11,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type EventSummary struct {
-	Event                    string  `json:"event"`
+type StreamSummary struct {
+	Stream                   string  `json:"stream"`
 	Timestamp                string  `json:"timestamp"`
 	SecondToDate             int     `json:"second_to_date"`
 	MinuteToDate             int     `json:"minute_to_date"`
@@ -27,8 +27,8 @@ type EventSummary struct {
 	ChangePerHour            int     `json:"change_per_hour"`
 }
 
-type Event struct {
-	Event     string `json:"event"`
+type Stream struct {
+	Stream    string `json:"stream"`
 	Timestamp string `json:"timestamp"`
 	Data      string `json:"data"`
 }
@@ -70,16 +70,16 @@ func getTimestampForRequest(queryValues url.Values, data []byte) time.Time {
 	return time.Now().UTC()
 }
 
-func processEvent(event string, t time.Time, data []byte) error {
-	trackEventForTime(event, t)
+func processStream(stream string, t time.Time, data []byte) error {
+	trackStreamForTime(stream, t)
 
-	eventData := Event{
-		event,
+	streamData := Stream{
+		stream,
 		t.Format(time.RFC3339),
 		string(data),
 	}
 
-	jsonData, err := json.Marshal(eventData)
+	jsonData, err := json.Marshal(streamData)
 	if err != nil {
 		return err
 	}
@@ -89,9 +89,9 @@ func processEvent(event string, t time.Time, data []byte) error {
 	return nil
 }
 
-func PostEventHandler(w http.ResponseWriter, r *http.Request) {
+func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	event := vars["event"]
+	stream := vars["stream"]
 
 	defer r.Body.Close()
 	data, err := ioutil.ReadAll(r.Body)
@@ -101,7 +101,7 @@ func PostEventHandler(w http.ResponseWriter, r *http.Request) {
 
 	t := getTimestampForRequest(r.URL.Query(), data)
 
-	err = processEvent(event, t, data)
+	err = processStream(stream, t, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -109,14 +109,14 @@ func PostEventHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func trackEventForTime(event string, t time.Time) {
-	eventMap := getEventMapForTime(t)
+func trackStreamForTime(stream string, t time.Time) {
+	streamMap := getStreamMapForTime(t)
 	deleteObsoleteDateKeysForTime(t)
 
-	dateMap, ok := eventMap[event]
+	dateMap, ok := streamMap[stream]
 	if ok == false {
-		eventMap[event] = make(map[string]int)
-		dateMap = eventMap[event]
+		streamMap[stream] = make(map[string]int)
+		dateMap = streamMap[stream]
 	}
 
 	timeKeys := []string{
@@ -133,16 +133,16 @@ func trackEventForTime(event string, t time.Time) {
 	}
 }
 
-func getEventMapForTime(t time.Time) map[string](map[string]int) {
+func getStreamMapForTime(t time.Time) map[string](map[string]int) {
 	dateKey := t.Format(dateKeyFormat)
-	eventMap, ok := dateMap[dateKey]
+	streamMap, ok := dateMap[dateKey]
 	if ok == false {
 		dateMap[dateKey] = make(map[string](map[string]int))
-		eventMap = dateMap[dateKey]
+		streamMap = dateMap[dateKey]
 		dateKeyMap[dateKey] = t
 	}
 
-	return eventMap
+	return streamMap
 }
 
 func deleteObsoleteDateKeysForTime(t time.Time) {
@@ -157,21 +157,21 @@ func deleteObsoleteDateKeysForTime(t time.Time) {
 	}
 }
 
-func GetEventHandler(w http.ResponseWriter, r *http.Request) {
+func GetStreamHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	event := vars["event"]
+	stream := vars["stream"]
 
 	now := getTimestampForRequest(r.URL.Query(), nil)
-	eventMap := getEventMapForTime(now)
+	streamMap := getStreamMapForTime(now)
 
-	var eventSummary EventSummary
+	var streamSummary StreamSummary
 	var jsonData []byte
 
-	if _, ok := eventMap[event]; ok {
-		eventSummary = *getEventSummary(now, event, eventMap)
+	if _, ok := streamMap[stream]; ok {
+		streamSummary = *getStreamSummary(now, stream, streamMap)
 
 		var err error
-		jsonData, err = json.Marshal(eventSummary)
+		jsonData, err = json.Marshal(streamSummary)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -184,20 +184,20 @@ func GetEventHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
+func GetAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
 	now := getTimestampForRequest(r.URL.Query(), nil)
-	eventMap := getEventMapForTime(now)
+	streamMap := getStreamMapForTime(now)
 
-	var eventSummaries []EventSummary
+	var streamSummaries []StreamSummary
 	var jsonData []byte
 
-	if len(eventMap) > 0 {
-		for event, _ := range eventMap {
-			eventSummaries = append(eventSummaries, *getEventSummary(now, event, eventMap))
+	if len(streamMap) > 0 {
+		for stream, _ := range streamMap {
+			streamSummaries = append(streamSummaries, *getStreamSummary(now, stream, streamMap))
 		}
 
 		var err error
-		jsonData, err = json.Marshal(eventSummaries)
+		jsonData, err = json.Marshal(streamSummaries)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -210,7 +210,7 @@ func GetAllEventsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func getEventSummary(now time.Time, event string, eventMap map[string](map[string]int)) *EventSummary {
+func getStreamSummary(now time.Time, stream string, streamMap map[string](map[string]int)) *StreamSummary {
 	timeUnits := map[string]time.Duration{
 		"hour":   time.Hour,
 		"minute": time.Minute,
@@ -245,7 +245,7 @@ func getEventSummary(now time.Time, event string, eventMap map[string](map[strin
 	var timeKey2 string
 	var timeKey3 string
 
-	if timeMap, eventExists := eventMap[event]; eventExists {
+	if timeMap, streamExists := streamMap[stream]; streamExists {
 		for period, _ := range trailingCounts {
 			if periodToDate, timeKeyExists := timeMap[now.Format(keyFormats[period])]; timeKeyExists {
 				valuesToDate[period] = periodToDate
@@ -284,8 +284,8 @@ func getEventSummary(now time.Time, event string, eventMap map[string](map[strin
 	projectedThisMinute := float32(valuesToDate["minute"]) / float32(now.Second()+1) * float32(60)
 	projectedThisHour := float32(valuesToDate["hour"]) / float32(now.Minute()+1) * float32(60)
 
-	return &EventSummary{
-		event,
+	return &StreamSummary{
+		stream,
 		now.Format(time.RFC3339),
 		valuesToDate["second"],
 		valuesToDate["minute"],
@@ -301,7 +301,7 @@ func getEventSummary(now time.Time, event string, eventMap map[string](map[strin
 	}
 }
 
-func DeleteAllEventsHandler(w http.ResponseWriter, r *http.Request) {
+func DeleteAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
 	dateMap = make(map[string](map[string](map[string]int)))
 	dateKeyMap = make(map[string]time.Time)
 	w.WriteHeader(http.StatusNoContent)

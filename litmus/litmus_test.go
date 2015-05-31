@@ -21,29 +21,29 @@ type LitmusTestSuite struct{}
 var _ = check.Suite(&LitmusTestSuite{})
 
 func (s *LitmusTestSuite) SetUpTest(c *check.C) {
-	httputils.Delete("http://localhost:9966/events")
+	httputils.Delete("http://localhost:9966/streams")
 
 	logPath, _ := filepath.Abs("../tap.log")
 	os.Remove(logPath)
 	os.Create(logPath)
 }
 
-func (s *LitmusTestSuite) TestLitmusTriggersCustomEvent(c *check.C) {
+func (s *LitmusTestSuite) TestLitmusTriggersCustomStream(c *check.C) {
 	testData := make([][]byte, 0)
 	for i := 0; i < 11; i++ {
 		jsonBytes := []byte(stringutils.Concat(`{"a":1}`, "\n"))
-		httputils.PostDataToUrl("http://localhost:9966/events/test_litmus", "application/json", jsonBytes)
+		httputils.PostDataToUrl("http://localhost:9966/streams/test_litmus", "application/json", jsonBytes)
 		testData = append(testData, jsonBytes)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	data, err := httputils.GetDataFromUrl("http://localhost:9966/events/test_litmus_event_more_than_10_per_minute")
+	data, err := httputils.GetDataFromUrl("http://localhost:9966/streams/test_litmus_stream_more_than_10_per_minute")
 	c.Assert(err, check.IsNil)
 
-	var eventSummary sieve.EventSummary
-	json.Unmarshal(data, &eventSummary)
+	var streamSummary sieve.StreamSummary
+	json.Unmarshal(data, &streamSummary)
 
-	c.Assert(eventSummary.Event, check.Equals, "test_litmus_event_more_than_10_per_minute")
-	c.Assert(eventSummary.MinuteToDate > 0, check.Equals, true)
+	c.Assert(streamSummary.Stream, check.Equals, "test_litmus_stream_more_than_10_per_minute")
+	c.Assert(streamSummary.MinuteToDate > 0, check.Equals, true)
 }

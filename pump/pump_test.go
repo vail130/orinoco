@@ -22,7 +22,7 @@ type PumpTestSuite struct{}
 var _ = check.Suite(&PumpTestSuite{})
 
 func (s *PumpTestSuite) SetUpTest(c *check.C) {
-	httputils.Delete("http://localhost:9966/events")
+	httputils.Delete("http://localhost:9966/streams")
 }
 
 func (s *PumpTestSuite) TestPumpConsumesLogFile(c *check.C) {
@@ -34,7 +34,7 @@ func (s *PumpTestSuite) TestPumpConsumesLogFile(c *check.C) {
 	file, err := os.OpenFile(logPath, os.O_APPEND|os.O_RDWR, 0666)
 	if err == nil {
 		for i := 0; i < 10; i++ {
-			jsonBytes := []byte(stringutils.Concat(`{"event":"test","timestamp":"2015-05-29T21:59:3`, strconv.Itoa(i), `Z","data":{"a":1}}`, "\n"))
+			jsonBytes := []byte(stringutils.Concat(`{"stream":"test","timestamp":"2015-05-29T21:59:3`, strconv.Itoa(i), `Z","data":{"a":1}}`, "\n"))
 			_, err = file.WriteAt(jsonBytes, int64(i*len(jsonBytes)))
 		}
 	}
@@ -42,12 +42,12 @@ func (s *PumpTestSuite) TestPumpConsumesLogFile(c *check.C) {
 
 	time.Sleep(1 * time.Second)
 
-	data, _ := httputils.GetDataFromUrl("http://localhost:9966/events/test?timestamp=2015-05-29T21:59:31Z")
+	data, _ := httputils.GetDataFromUrl("http://localhost:9966/streams/test?timestamp=2015-05-29T21:59:31Z")
 
-	var eventSummary sieve.EventSummary
-	json.Unmarshal(data, &eventSummary)
+	var streamSummary sieve.StreamSummary
+	json.Unmarshal(data, &streamSummary)
 
-	c.Assert(eventSummary.Event, check.Equals, "test")
-	c.Assert(eventSummary.Timestamp, check.Equals, "2015-05-29T21:59:31Z")
-	c.Assert(eventSummary.MinuteToDate, check.Equals, 10)
+	c.Assert(streamSummary.Stream, check.Equals, "test")
+	c.Assert(streamSummary.Timestamp, check.Equals, "2015-05-29T21:59:31Z")
+	c.Assert(streamSummary.MinuteToDate, check.Equals, 10)
 }

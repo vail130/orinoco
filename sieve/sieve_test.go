@@ -8,6 +8,7 @@ import (
 
 	"github.com/vail130/orinoco/httputils"
 	"github.com/vail130/orinoco/sieve"
+	"github.com/vail130/orinoco/stringutils"
 )
 
 func TestSieveApi(t *testing.T) { check.TestingT(t) }
@@ -17,47 +18,45 @@ type SieveApiTestSuite struct{}
 var _ = check.Suite(&SieveApiTestSuite{})
 
 func (s *SieveApiTestSuite) SetUpTest(c *check.C) {
-	httputils.Delete("http://localhost:9966/events")
+	httputils.Delete(streamUrl)
 }
 
-func (s *SieveApiTestSuite) TestSieveReturnsNullWhenNoEventsHaveBeenPosted(c *check.C) {
-	url := "http://localhost:9966/events"
-	data, _ := httputils.GetDataFromUrl(url)
+func (s *SieveApiTestSuite) TestSieveReturnsNullWhenNoStreamsHaveBeenPosted(c *check.C) {
+	data, _ := httputils.GetDataFromUrl(streamUrl)
 	c.Assert(string(data), check.Equals, "null")
 }
 
-func (s *SieveApiTestSuite) TestSieveReturnsEventSummaryAfterReceivingData(c *check.C) {
+func (s *SieveApiTestSuite) TestSieveReturnsStreamSummaryAfterReceivingData(c *check.C) {
 	var url string
 
-	url = "http://localhost:9966/events/test"
+	url = stringutils.Concat(streamUrl, "/test")
 	jsonData := []byte(`{"a":1}`)
 	httputils.PostDataToUrl(url, "application/json", jsonData)
 
-	url = "http://localhost:9966/events/test"
 	data, _ := httputils.GetDataFromUrl(url)
 
-	var eventSummary sieve.EventSummary
-	json.Unmarshal(data, &eventSummary)
+	var streamSummary sieve.StreamSummary
+	json.Unmarshal(data, &streamSummary)
 
-	c.Assert(eventSummary.Event, check.Equals, "test")
+	c.Assert(streamSummary.Stream, check.Equals, "test")
 }
 
-func (s *SieveApiTestSuite) TestSieveReturnsNullForAllEventsAfterResetting(c *check.C) {
+func (s *SieveApiTestSuite) TestSieveReturnsNullForAllStreamsAfterResetting(c *check.C) {
 	jsonData := []byte(`{"a":1}`)
-	httputils.PostDataToUrl("http://localhost:9966/events/test", "application/json", jsonData)
+	httputils.PostDataToUrl(stringutils.Concat(streamUrl, "/test"), "application/json", jsonData)
 
-	httputils.Delete("http://localhost:9966/events")
+	httputils.Delete(streamUrl)
 
-	data, _ := httputils.GetDataFromUrl("http://localhost:9966/events")
+	data, _ := httputils.GetDataFromUrl(streamUrl)
 	c.Assert(string(data), check.Equals, "null")
 }
 
-func (s *SieveApiTestSuite) TestSieveReturnsNullForIndividualEventAfterResetting(c *check.C) {
+func (s *SieveApiTestSuite) TestSieveReturnsNullForIndividualStreamAfterResetting(c *check.C) {
 	jsonData := []byte(`{"a":1}`)
-	httputils.PostDataToUrl("http://localhost:9966/events/test", "application/json", jsonData)
+	httputils.PostDataToUrl(stringutils.Concat(streamUrl, "/test"), "application/json", jsonData)
 
-	httputils.Delete("http://localhost:9966/events")
+	httputils.Delete(streamUrl)
 
-	data, _ := httputils.GetDataFromUrl("http://localhost:9966/events/test")
+	data, _ := httputils.GetDataFromUrl(stringutils.Concat(streamUrl, "/test"))
 	c.Assert(string(data), check.Equals, "null")
 }

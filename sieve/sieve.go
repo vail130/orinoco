@@ -17,10 +17,10 @@ func Sieve(port string, boundary string) {
 	isTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
 
 	r := mux.NewRouter()
-	r.HandleFunc("/events", GetAllEventsHandler).Methods("GET")
-	r.HandleFunc("/events", DeleteAllEventsHandler).Methods("DELETE")
-	r.HandleFunc("/events/{event}", GetEventHandler).Methods("GET")
-	r.HandleFunc("/events/{event}", PostEventHandler).Methods("POST")
+	r.HandleFunc("/streams", GetAllStreamsHandler).Methods("GET")
+	r.HandleFunc("/streams", DeleteAllStreamsHandler).Methods("DELETE")
+	r.HandleFunc("/streams/{stream}", GetStreamHandler).Methods("GET")
+	r.HandleFunc("/streams/{stream}", PostStreamHandler).Methods("POST")
 	r.HandleFunc("/subscribe", SubscribeHandler)
 	http.Handle("/", r)
 

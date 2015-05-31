@@ -22,7 +22,7 @@ type TapTestSuite struct{}
 var _ = check.Suite(&TapTestSuite{})
 
 func (s *TapTestSuite) SetUpTest(c *check.C) {
-	httputils.Delete("http://localhost:9966/events")
+	httputils.Delete("http://localhost:9966/streams")
 
 	logPath, _ := filepath.Abs("../tap.log")
 	os.Remove(logPath)
@@ -33,7 +33,7 @@ func (s *TapTestSuite) TestTapOutputsDataStreamLogFile(c *check.C) {
 	testData := make([][]byte, 0)
 	for i := 0; i < 10; i++ {
 		jsonBytes := []byte(stringutils.Concat(`{"a":1}`, "\n"))
-		httputils.PostDataToUrl("http://localhost:9966/events/test", "application/json", jsonBytes)
+		httputils.PostDataToUrl("http://localhost:9966/streams/test", "application/json", jsonBytes)
 		testData = append(testData, jsonBytes)
 	}
 
@@ -49,9 +49,9 @@ func (s *TapTestSuite) TestTapOutputsDataStreamLogFile(c *check.C) {
 	for scanner.Scan() {
 		messageData := scanner.Bytes()
 		if i < len(testData) {
-			var event sieve.Event
-			json.Unmarshal(messageData, &event)
-			c.Assert(event.Data, check.Equals, string(testData[i]))
+			var stream sieve.Stream
+			json.Unmarshal(messageData, &stream)
+			c.Assert(stream.Data, check.Equals, string(testData[i]))
 		}
 		i++
 	}

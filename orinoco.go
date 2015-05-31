@@ -28,8 +28,9 @@ var (
 	tapLogPath  = tapApp.Flag("logpath", "File to log data stream to. Omitting this flag will log to standard out.").Short('l').String()
 
 	pumpApp       = app.Command("pump", "Run a data stream client to pump data to sieve.")
+	pumpUrl       = pumpApp.Flag("url", "URL of sieve server.").Short('u').String()
 	pumpLogPath   = pumpApp.Flag("logpath", "Log file to consume to pump to sieve.").Short('l').String()
-	pumpUrl       = pumpApp.Flag("url", "Sieve endpoint to post events from log file.").Short('u').String()
+	pumpStream    = pumpApp.Flag("stream", "Name of stream.").Short('s').String()
 	pumpConfig    = pumpApp.Flag("config", "Path to configuration file. This overrides other flags").Short('c').String()
 	pumpSaveFiles = pumpApp.Flag("save-files", "Disable removal of consumed log files").Default("0").String()
 
@@ -50,7 +51,7 @@ func main() {
 		tap.Tap(*tapHost, *tapPort, *tapOrigin, *tapBoundary, *tapLogPath)
 
 	case pumpApp.FullCommand():
-		pump.Pump(*pumpLogPath, *pumpUrl, *pumpConfig, *pumpSaveFiles)
+		pump.Pump(*pumpUrl, *pumpLogPath, *pumpStream, *pumpConfig, *pumpSaveFiles)
 
 	case litmusApp.FullCommand():
 		litmus.Litmus(*litmusUrl, *litmusConfig)

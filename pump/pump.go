@@ -16,7 +16,8 @@ import (
 )
 
 type Config struct {
-	Streams map[string]string `yaml:"streams"`
+	SieveUrl string            `yaml:"url"`
+	Streams  map[string]string `yaml:"streams"`
 }
 
 var saveConsumedLogFiles bool
@@ -70,12 +71,12 @@ func consumeLogs(logPath string, url string) {
 	}
 }
 
-func Pump(logPath string, url string, configPath string, saveFiles string) {
+func Pump(sieveUrl string, logPath string, stream string, configPath string, saveFiles string) {
 	streams := make(map[string]string)
 	saveConsumedLogFiles = stringutils.StringToBool(saveFiles)
 
 	if len(configPath) == 0 {
-		streams[logPath] = url
+		streams[logPath] = stream
 	} else {
 		configData, err := ioutil.ReadFile(configPath)
 		if err != nil {
@@ -85,16 +86,20 @@ func Pump(logPath string, url string, configPath string, saveFiles string) {
 		var config Config
 		yaml.Unmarshal(configData, &config)
 		streams = config.Streams
+		if len(config.SieveUrl) > 0 {
+			sieveUrl = config.SieveUrl
+		}
 	}
 
 	for {
 		var wg sync.WaitGroup
-		for logPath, url := range streams {
+		for logPath, stream := range streams {
+			streamUrl := stringutils.Concat(sieveUrl, "/streams/", stream)
 			wg.Add(1)
-			go func(logPath string, url string) {
+			go func(logPath string, streamUrl string) {
 				defer wg.Done()
-				consumeLogs(logPath, url)
-			}(logPath, url)
+				consumeLogs(logPath, streamUrl)
+			}(logPath, streamUrl)
 		}
 		time.Sleep(time.Second)
 		wg.Wait()

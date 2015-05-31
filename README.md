@@ -1,48 +1,44 @@
 # Orinoco
-A data stream management system with two services:
+Orinoco allows enables monitoring of the state of a data stream, with
+custom triggers based on stream activity. It includes 4 services to
+customize your deployment.
 
 ## Sieve
-A pub-sub server to accept and distribute data streams and provide basic
-statistics on the state of the stream.
+A server hosting an HTTP API that keeps track of statistics on the state of
+the data stream and forwards data to each subscriber over websockets.
 
 ## Pump
-A client to feed data streams to Sieve.
-
-### Data Sources
-Pump will consume log files and POST the data from each line to the
-associated URL.
-
-### Configuration
-Pump can read stream mappings from a YAML config file.
+A client that feeds data streams to Sieve. Pump will consume log files and POST
+the data from each line to the associated URL and stream name. It reads
+stream mappings of log file paths to stream names from a YAML config file.
 
 ```yaml
+url: http://localhost:9966
 streams:
-  /opt/event/test1.log: http://example.com/streams/test1
-  /opt/event/test2.log: http://example.com/streams/test2
+  /opt/stream/test1.log: test1
+  /opt/stream/test2.log: test2
 ```
 
 ## Tap
-A client to consume data streams from Sieve.
+A client that consumes data streams from Sieve. It connects to a sieve server
+over a websocket and can print the data stream to stdout or log files.
 
 ## Litmus
-A daemon to monitor data stream statistics through Sieve.
-
-### Configuration
-Litmus can read from a YAML config file. It supports everything that can be passed
-in the command line (except config file paths), and is the only way to set up
-custom event triggers.
+A client that monitors data stream statistics through Sieve. It gets
+statistics from a designated Sieve server every second, and evaluates each
+trigger specified in a YAML config file.
 
 ```yaml
 url: http://localhost:9966
 triggers:
-  trailing_average_per_minute_all_events_at_zero:
+  trailing_average_per_minute_all_streams_at_zero:
     event: "*"
     metric: trailing_average_per_minute
     condition: "==0"
-    endpoint: http://example.com/events
-  trailing_average_per_hour_test_event_under_100:
-    event: test_event
+    endpoint: http://example.com/trailing_average_per_minute_all_streams_at_zero
+  trailing_average_per_hour_test_stream_under_100:
+    event: test_stream
     metric: trailing_average_per_hour
     condition: "<100"
-    endpoint: http://example.com/events
+    endpoint: http://example.com/trailing_average_per_hour_test_stream_under_100
 ```
