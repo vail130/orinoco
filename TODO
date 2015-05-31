@@ -1,9 +1,10 @@
+- Support statistics on arbitrary data in stream by configuration
 - Tap save stream to S3
 - Sieve master-slave support
 
 ===================================================
 
-- Support statistics on arbitrary data in stream by configuration
+- Set up CI (Travis?)
 - Split unit and integration tests (http://peter.bourgon.org/go-in-production/#testing-and-validation)
 - Sieve deletion of data for individual event
 

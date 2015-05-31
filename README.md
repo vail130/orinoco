@@ -50,3 +50,8 @@ triggers:
     condition: "<100"
     endpoint: http://example.com/trailing_average_per_hour_test_stream_under_100
 ```
+
+# Testing
+Install docker or boot2docker, then run tests from the make target:
+
+`make test`
