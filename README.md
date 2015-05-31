@@ -1,5 +1,5 @@
 # Orinoco
-Orinoco allows enables monitoring of the state of a data stream, with
+Orinoco allows monitoring of the state of a data stream, with
 custom triggers based on stream activity. It includes 4 services to
 customize your deployment.
 
