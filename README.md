@@ -8,6 +8,15 @@ statistics on the state of the stream.
 ## Pump
 A client to feed data streams to Sieve.
 
+### Configuration
+Pump can read from a YAML config file.
+
+```yaml
+streams:
+  /opt/event/test1.log: http://example.com/streams/test1
+  /opt/event/test2.log: http://example.com/streams/test2
+```
+
 ## Tap
 A client to consume data streams from Sieve.
 
@@ -15,7 +24,7 @@ A client to consume data streams from Sieve.
 A daemon to monitor data stream statistics through Sieve.
 
 ### Configuration
-Orinoco can read from a config file. It supports everything that can be passed
+Litmus can read from a YAML config file. It supports everything that can be passed
 in the command line (except config file paths), and is the only way to set up
 custom event triggers.
 

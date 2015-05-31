@@ -2,14 +2,22 @@ package pump
 
 import (
 	"bufio"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
+	"sync"
 	"time"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/vail130/orinoco/httputils"
 	"github.com/vail130/orinoco/stringutils"
 )
+
+type Config struct {
+	Streams map[string]string `yaml:"streams"`
+}
 
 func sendEventOverHttp(url string, data []byte) {
 	_, err := httputils.PostDataToUrl(url, "application/json", data)
@@ -25,31 +33,61 @@ func consumeLogs(logPath string, url string) {
 	consumingPath := stringutils.Concat(logPath, ".", unixTimeStamp, ".consuming")
 	err := os.Rename(logPath, consumingPath)
 	if err != nil {
+		if !os.IsNotExist(err) {
+			log.Fatalln(err)
+		}
 		return
 	}
 
-	if file, err := os.OpenFile(consumingPath, os.O_RDONLY, 0666); err == nil {
-		scanner := bufio.NewScanner(file)
-		for scanner.Scan() {
-			messageData := scanner.Bytes()
-			if string(messageData) != "null" {
-				sendEventOverHttp(url, messageData)
-			}
-		}
-
-		if err = scanner.Err(); err != nil {
-			log.Fatalln(err)
-		}
-
-		file.Close()
+	file, err := os.OpenFile(consumingPath, os.O_RDONLY, 0666)
+	if err != nil {
+		log.Fatalln(err)
 	}
+	
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		messageData := scanner.Bytes()
+		if string(messageData) != "null" {
+			sendEventOverHttp(url, messageData)
+		}
+	}
+
+	if err = scanner.Err(); err != nil {
+		log.Fatalln(err)
+	}
+
+	file.Close()
 
 	consumedPath := stringutils.Concat(logPath, ".", unixTimeStamp, ".consumed")
 	os.Rename(consumingPath, consumedPath)
 }
 
-func Pump(logPath string, url string) {
+func Pump(logPath string, url string, configPath string) {
+	streams := make(map[string]string)
+	
+	if len(configPath) == 0 {
+		streams[logPath] = url
+	} else {
+		configData, err := ioutil.ReadFile(configPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		var config Config
+		yaml.Unmarshal(configData, &config)
+		streams = config.Streams
+	}
+
 	for {
-		consumeLogs(logPath, url)
+		var wg sync.WaitGroup
+		for logPath, url := range streams {
+			wg.Add(1)
+			go func(logPath string, url string) {
+				defer wg.Done()
+				consumeLogs(logPath, url)
+			}(logPath, url)
+		}
+		time.Sleep(time.Second)
+		wg.Wait()
 	}
 }

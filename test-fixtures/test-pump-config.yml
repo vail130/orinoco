@@ -1,0 +1,2 @@
+streams:
+  /go/src/github.com/vail130/orinoco/pump.log: http://localhost:9966/events/test

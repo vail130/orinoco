@@ -45,5 +45,5 @@ func (s *LitmusTestSuite) TestLitmusTriggersCustomEvent(c *check.C) {
 	json.Unmarshal(data, &eventSummary)
 
 	c.Assert(eventSummary.Event, check.Equals, "test_litmus_event_more_than_10_per_minute")
-	c.Assert(eventSummary.SecondToDate, check.Equals, 1)
+	c.Assert(eventSummary.MinuteToDate > 0, check.Equals, true)
 }

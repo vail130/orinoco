@@ -18,7 +18,8 @@ var (
 
 	pumpApp     = app.Command("pump", "Run a data stream client to pump data to sieve.")
 	pumpLogPath = pumpApp.Flag("logpath", "Log file to consume to pump to sieve.").Short('l').String()
-	pumpUrl     = pumpApp.Flag("url", "Sieve endpoint to post events from log file.").Short('u').Default("http://localhost:9966/events/test").String()
+	pumpUrl     = pumpApp.Flag("url", "Sieve endpoint to post events from log file.").Short('u').String()
+	pumpConfig  = pumpApp.Flag("config", "Path to configuration file. This overrides other flags").Short('c').String()
 
 	sieveApp      = app.Command("sieve", "Run a data stream stats and pub-sub server.")
 	sievePort     = sieveApp.Flag("port", "Port for sieve to listen on.").Short('p').Default("9966").String()
@@ -42,7 +43,7 @@ func main() {
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case pumpApp.FullCommand():
-		pump.Pump(*pumpLogPath, *pumpUrl)
+		pump.Pump(*pumpLogPath, *pumpUrl, *pumpConfig)
 
 	case sieveApp.FullCommand():
 		sieve.Sieve(*sievePort, *sieveBoundary)
