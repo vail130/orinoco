@@ -16,12 +16,6 @@ const orinocoMessageBoundary = "____OrInOcO____"
 var (
 	app = kingpin.New("orinoco", "A data stream monitoring services.")
 
-	pumpApp       = app.Command("pump", "Run a data stream client to pump data to sieve.")
-	pumpLogPath   = pumpApp.Flag("logpath", "Log file to consume to pump to sieve.").Short('l').String()
-	pumpUrl       = pumpApp.Flag("url", "Sieve endpoint to post events from log file.").Short('u').String()
-	pumpConfig    = pumpApp.Flag("config", "Path to configuration file. This overrides other flags").Short('c').String()
-	pumpSaveFiles = pumpApp.Flag("save-files", "Disable removal of consumed log files").Default("0").String()
-
 	sieveApp      = app.Command("sieve", "Run a data stream stats and pub-sub server.")
 	sievePort     = sieveApp.Flag("port", "Port for sieve to listen on.").Short('p').Default("9966").String()
 	sieveBoundary = sieveApp.Flag("boundary", "Designated boundary between messages.").Short('b').Default(orinocoMessageBoundary).String()
@@ -33,6 +27,12 @@ var (
 	tapBoundary = tapApp.Flag("boundary", "Designated boundary between messages.").Short('b').Default(orinocoMessageBoundary).String()
 	tapLogPath  = tapApp.Flag("logpath", "File to log data stream to. Omitting this flag will log to standard out.").Short('l').String()
 
+	pumpApp       = app.Command("pump", "Run a data stream client to pump data to sieve.")
+	pumpLogPath   = pumpApp.Flag("logpath", "Log file to consume to pump to sieve.").Short('l').String()
+	pumpUrl       = pumpApp.Flag("url", "Sieve endpoint to post events from log file.").Short('u').String()
+	pumpConfig    = pumpApp.Flag("config", "Path to configuration file. This overrides other flags").Short('c').String()
+	pumpSaveFiles = pumpApp.Flag("save-files", "Disable removal of consumed log files").Default("0").String()
+
 	litmusApp    = app.Command("litmus", "Run a data stream monitoring daemon.")
 	litmusUrl    = litmusApp.Flag("url", "Sieve host url.").Short('u').Default("http://localhost:9966").String()
 	litmusConfig = litmusApp.Flag("config", "Path to configuration file.").Short('c').String()
@@ -43,14 +43,14 @@ func main() {
 
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
-	case pumpApp.FullCommand():
-		pump.Pump(*pumpLogPath, *pumpUrl, *pumpConfig, *pumpSaveFiles)
-
 	case sieveApp.FullCommand():
 		sieve.Sieve(*sievePort, *sieveBoundary)
 
 	case tapApp.FullCommand():
 		tap.Tap(*tapHost, *tapPort, *tapOrigin, *tapBoundary, *tapLogPath)
+
+	case pumpApp.FullCommand():
+		pump.Pump(*pumpLogPath, *pumpUrl, *pumpConfig, *pumpSaveFiles)
 
 	case litmusApp.FullCommand():
 		litmus.Litmus(*litmusUrl, *litmusConfig)

@@ -4,8 +4,4 @@ RUN apt-get update && \
 	apt-get install -y git golang && \
     rm -rf /var/lib/apt/lists/*
 
-ADD run-tests.sh /usr/local/bin/run-tests
-RUN chmod +x /usr/local/bin/run-tests
-
 ENTRYPOINT ["/sbin/my_init"]
-CMD ["--", "/usr/local/bin/run-tests"]
