@@ -16,8 +16,9 @@ import (
 )
 
 type Config struct {
-	SieveUrl string            `yaml:"url"`
-	Streams  map[string]string `yaml:"streams"`
+	SieveUrl  string            `yaml:"url"`
+	SaveFiles string            `yaml:"save_files"`
+	Streams   map[string]string `yaml:"streams"`
 }
 
 var saveConsumedLogFiles bool
@@ -71,30 +72,21 @@ func consumeLogs(logPath string, url string) {
 	}
 }
 
-func Pump(sieveUrl string, logPath string, stream string, configPath string, saveFiles string) {
-	streams := make(map[string]string)
-	saveConsumedLogFiles = stringutils.StringToBool(saveFiles)
-
-	if len(configPath) == 0 {
-		streams[logPath] = stream
-	} else {
-		configData, err := ioutil.ReadFile(configPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		var config Config
-		yaml.Unmarshal(configData, &config)
-		streams = config.Streams
-		if len(config.SieveUrl) > 0 {
-			sieveUrl = config.SieveUrl
-		}
+func Pump(configPath string) {
+	configData, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Fatal(err)
 	}
+
+	var config Config
+	yaml.Unmarshal(configData, &config)
+
+	saveConsumedLogFiles = stringutils.StringToBool(config.SaveFiles)
 
 	for {
 		var wg sync.WaitGroup
-		for logPath, stream := range streams {
-			streamUrl := stringutils.Concat(sieveUrl, "/streams/", stream)
+		for logPath, stream := range config.Streams {
+			streamUrl := stringutils.Concat(config.SieveUrl, "/streams/", stream)
 			wg.Add(1)
 			go func(logPath string, streamUrl string) {
 				defer wg.Done()

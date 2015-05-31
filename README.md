@@ -21,7 +21,15 @@ streams:
 
 ## Tap
 A client that consumes data streams from Sieve. It connects to a sieve server
-over a websocket and can print the data stream to stdout or log files.
+over a websocket and can print the data stream to stdout or log files, based
+on a YAML config file.
+
+```yaml
+host: localhost
+port: 9966
+origin: http://localhost/
+log_path: /go/src/github.com/vail130/orinoco/tap.log
+```
 
 ## Litmus
 A client that monitors data stream statistics through Sieve. It gets

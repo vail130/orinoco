@@ -31,7 +31,7 @@ do
 done
 
 # Start tap service in the background
-${PROJECT_DIR}/bin/orinoco tap -l ${PROJECT_DIR}/tap.log &
+${PROJECT_DIR}/bin/orinoco tap -c ${PROJECT_DIR}/test-fixtures/test-tap-config.yml &
 TAP_PID=$!
 
 # Start pump service in the background

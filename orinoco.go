@@ -16,44 +16,34 @@ const orinocoMessageBoundary = "____OrInOcO____"
 var (
 	app = kingpin.New("orinoco", "A data stream monitoring services.")
 
-	sieveApp      = app.Command("sieve", "Run a data stream stats and pub-sub server.")
-	sievePort     = sieveApp.Flag("port", "Port for sieve to listen on.").Short('p').Default("9966").String()
-	sieveBoundary = sieveApp.Flag("boundary", "Designated boundary between messages.").Short('b').Default(orinocoMessageBoundary).String()
+	sieveApp  = app.Command("sieve", "Run a data stream stats and pub-sub server.")
+	sievePort = sieveApp.Flag("port", "Port for sieve to listen on.").Short('p').Default("9966").String()
 
-	tapApp      = app.Command("tap", "Run a data stream client to subscribe to sieve.")
-	tapHost     = tapApp.Flag("host", "Sieve host to connect to.").Short('h').Default("localhost").String()
-	tapPort     = tapApp.Flag("port", "Port to use to connect to sieve.").Short('p').Default("9966").String()
-	tapOrigin   = tapApp.Flag("origin", "Origin from which to connect to sieve.").Short('o').Default("http://localhost/").String()
-	tapBoundary = tapApp.Flag("boundary", "Designated boundary between messages.").Short('b').Default(orinocoMessageBoundary).String()
-	tapLogPath  = tapApp.Flag("logpath", "File to log data stream to. Omitting this flag will log to standard out.").Short('l').String()
+	tapApp    = app.Command("tap", "Run a data stream client to subscribe to sieve.")
+	tapConfig = tapApp.Flag("config", "Path to configuration file.").Short('c').String()
 
-	pumpApp       = app.Command("pump", "Run a data stream client to pump data to sieve.")
-	pumpUrl       = pumpApp.Flag("url", "URL of sieve server.").Short('u').String()
-	pumpLogPath   = pumpApp.Flag("logpath", "Log file to consume to pump to sieve.").Short('l').String()
-	pumpStream    = pumpApp.Flag("stream", "Name of stream.").Short('s').String()
-	pumpConfig    = pumpApp.Flag("config", "Path to configuration file. This overrides other flags").Short('c').String()
-	pumpSaveFiles = pumpApp.Flag("save-files", "Disable removal of consumed log files").Default("0").String()
+	pumpApp    = app.Command("pump", "Run a data stream client to pump data to sieve.")
+	pumpConfig = pumpApp.Flag("config", "Path to configuration file. This overrides other flags").Short('c').String()
 
 	litmusApp    = app.Command("litmus", "Run a data stream monitoring daemon.")
-	litmusUrl    = litmusApp.Flag("url", "Sieve host url.").Short('u').Default("http://localhost:9966").String()
 	litmusConfig = litmusApp.Flag("config", "Path to configuration file.").Short('c').String()
 )
 
 func main() {
-	app.Version("0.0.3")
+	app.Version("0.0.4")
 
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 
 	case sieveApp.FullCommand():
-		sieve.Sieve(*sievePort, *sieveBoundary)
+		sieve.Sieve(*sievePort, orinocoMessageBoundary)
 
 	case tapApp.FullCommand():
-		tap.Tap(*tapHost, *tapPort, *tapOrigin, *tapBoundary, *tapLogPath)
+		tap.Tap(*tapConfig, orinocoMessageBoundary)
 
 	case pumpApp.FullCommand():
-		pump.Pump(*pumpUrl, *pumpLogPath, *pumpStream, *pumpConfig, *pumpSaveFiles)
+		pump.Pump(*pumpConfig)
 
 	case litmusApp.FullCommand():
-		litmus.Litmus(*litmusUrl, *litmusConfig)
+		litmus.Litmus(*litmusConfig)
 	}
 }

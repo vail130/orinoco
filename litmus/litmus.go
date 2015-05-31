@@ -124,7 +124,7 @@ func monitorSieve(url string, triggerMap map[string]Trigger) {
 	}
 }
 
-func Litmus(url string, configPath string) {
+func Litmus(configPath string) {
 	configData, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatal(err)
@@ -133,9 +133,5 @@ func Litmus(url string, configPath string) {
 	var config Config
 	yaml.Unmarshal(configData, &config)
 
-	if url == "" {
-		url = config.Url
-	}
-
-	monitorSieve(stringutils.Concat(url, "/streams"), config.Triggers)
+	monitorSieve(stringutils.Concat(config.Url, "/streams"), config.Triggers)
 }

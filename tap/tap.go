@@ -2,16 +2,25 @@ package tap
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path"
 
 	"github.com/gorilla/websocket"
+	"gopkg.in/yaml.v2"
 
 	"github.com/vail130/orinoco/sliceutils"
 	"github.com/vail130/orinoco/stringutils"
 )
+
+type Config struct {
+	Host    string `yaml:"host"`
+	Port    string `yaml:"port"`
+	Origin  string `yaml:"origin"`
+	LogPath string `yaml:"log_path"`
+}
 
 var loggingPermissions os.FileMode = 0666
 
@@ -31,7 +40,7 @@ func logMessage(logPath string, message []byte) {
 	}
 }
 
-func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
+func readFromSocket(ws *websocket.Conn, logPath string, boundary string) {
 	boundaryBytes := []byte(boundary)
 
 	for {
@@ -46,19 +55,27 @@ func readFromSocket(ws *websocket.Conn, boundary string, logPath string) {
 	}
 }
 
-func Tap(host string, port string, origin string, boundary string, logPath string) {
-	url := stringutils.Concat("ws://", host, ":", port, "/subscribe")
+func Tap(configPath string, boundary string) {
+	configData, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var config Config
+	yaml.Unmarshal(configData, &config)
+
+	url := stringutils.Concat("ws://", config.Host, ":", config.Port, "/subscribe")
 	headers := make(http.Header)
-	headers["origin"] = []string{origin}
+	headers["origin"] = []string{config.Origin}
 	ws, _, err := websocket.DefaultDialer.Dial(url, headers)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if len(logPath) > 0 {
-		os.MkdirAll(path.Dir(logPath), loggingPermissions)
-		os.Create(logPath)
+	if len(config.LogPath) > 0 {
+		os.MkdirAll(path.Dir(config.LogPath), loggingPermissions)
+		os.Create(config.LogPath)
 	}
 
-	readFromSocket(ws, boundary, logPath)
+	readFromSocket(ws, config.LogPath, boundary)
 }
