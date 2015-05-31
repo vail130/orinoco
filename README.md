@@ -32,12 +32,12 @@ trigger specified in a YAML config file.
 url: http://localhost:9966
 triggers:
   trailing_average_per_minute_all_streams_at_zero:
-    event: "*"
+    stream: "*"
     metric: trailing_average_per_minute
     condition: "==0"
     endpoint: http://example.com/trailing_average_per_minute_all_streams_at_zero
   trailing_average_per_hour_test_stream_under_100:
-    event: test_stream
+    stream: test_stream
     metric: trailing_average_per_hour
     condition: "<100"
     endpoint: http://example.com/trailing_average_per_hour_test_stream_under_100
