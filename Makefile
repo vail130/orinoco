@@ -4,7 +4,7 @@ clean:
 	rm -rf bin
 
 build:
-	go build -o bin/orinoco orinoco.go
+	go build -o bin/orinoco main.go
 
 deps:
 	go get

@@ -11,7 +11,7 @@ find ${PROJECT_DIR} -name "pump.log.*" -exec rm -f {} \;
 rm -f ${PROJECT_DIR}/tap.log
 
 # Build executable
-/usr/bin/go build -o ${PROJECT_DIR}/bin/orinoco ${PROJECT_DIR}/orinoco.go
+/usr/bin/go build -o ${PROJECT_DIR}/bin/orinoco ${PROJECT_DIR}/main.go
 
 # Start sieve server in the background
 ${PROJECT_DIR}/bin/orinoco sieve &
@@ -51,6 +51,7 @@ sieve
 tap
 pump
 litmus
+orinoco
 EOM
 
 # Run all packages or only one specified in environment.

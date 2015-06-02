@@ -24,7 +24,7 @@ type Config struct {
 
 var loggingPermissions os.FileMode = 0666
 
-func logMessage(logPath string, message []byte) {
+func LogMessage(logPath string, message []byte) {
 	if len(logPath) > 0 {
 		file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND, loggingPermissions)
 		if err != nil {
@@ -51,7 +51,7 @@ func readFromSocket(ws *websocket.Conn, logPath string, boundary string) {
 		}
 
 		message = message[:len(message)-len(boundaryBytes)]
-		logMessage(logPath, message)
+		LogMessage(logPath, message)
 	}
 }
 

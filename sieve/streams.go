@@ -9,6 +9,8 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+
+	"github.com/vail130/orinoco/timeutils"
 )
 
 type StreamSummary struct {
@@ -42,9 +44,9 @@ const secondKeyFormat = "2006-01-02-15-04-05"
 var dateMap = make(map[string](map[string](map[string]int)))
 var dateKeyMap = make(map[string]time.Time)
 
-func getTimestampForRequest(queryValues url.Values, data []byte) time.Time {
+func GetTimestampForRequest(queryValues url.Values, data []byte) time.Time {
 	if !isTestEnv {
-		return time.Now().UTC()
+		return timeutils.UtcNow()
 	}
 
 	if timestampString, ok := queryValues["timestamp"]; ok {
@@ -57,7 +59,7 @@ func getTimestampForRequest(queryValues url.Values, data []byte) time.Time {
 		var f interface{}
 		err := json.Unmarshal(data, &f)
 		if err != nil {
-			return time.Now().UTC()
+			return timeutils.UtcNow()
 		}
 
 		if timestampString, ok := f.(map[string]interface{})["timestamp"]; ok {
@@ -67,10 +69,12 @@ func getTimestampForRequest(queryValues url.Values, data []byte) time.Time {
 		}
 	}
 
-	return time.Now().UTC()
+	return timeutils.UtcNow()
 }
 
-func processStream(stream string, t time.Time, data []byte) error {
+type Broadcaster func([]byte)
+
+func ProcessStream(stream string, t time.Time, data []byte, broadcastMessage Broadcaster) error {
 	trackStreamForTime(stream, t)
 
 	streamData := Stream{
@@ -84,7 +88,7 @@ func processStream(stream string, t time.Time, data []byte) error {
 		return err
 	}
 
-	broadcastMessage(websocket.TextMessage, jsonData)
+	broadcastMessage(jsonData)
 
 	return nil
 }
@@ -99,9 +103,13 @@ func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 		data = make([]byte, 0)
 	}
 
-	t := getTimestampForRequest(r.URL.Query(), data)
+	broadcastMessage := func(data []byte) {
+		broadcastOverWebsocket(websocket.TextMessage, data)
+	}
 
-	err = processStream(stream, t, data)
+	t := GetTimestampForRequest(r.URL.Query(), data)
+	err = ProcessStream(stream, t, data, broadcastMessage)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -110,7 +118,7 @@ func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func trackStreamForTime(stream string, t time.Time) {
-	streamMap := getStreamMapForTime(t)
+	streamMap := GetStreamMapForTime(t)
 	deleteObsoleteDateKeysForTime(t)
 
 	dateMap, ok := streamMap[stream]
@@ -133,7 +141,7 @@ func trackStreamForTime(stream string, t time.Time) {
 	}
 }
 
-func getStreamMapForTime(t time.Time) map[string](map[string]int) {
+func GetStreamMapForTime(t time.Time) map[string](map[string]int) {
 	dateKey := t.Format(dateKeyFormat)
 	streamMap, ok := dateMap[dateKey]
 	if ok == false {
@@ -161,14 +169,13 @@ func GetStreamHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	stream := vars["stream"]
 
-	now := getTimestampForRequest(r.URL.Query(), nil)
-	streamMap := getStreamMapForTime(now)
+	now := GetTimestampForRequest(r.URL.Query(), nil)
+	streamMap := GetStreamMapForTime(now)
 
-	var streamSummary StreamSummary
 	var jsonData []byte
 
 	if _, ok := streamMap[stream]; ok {
-		streamSummary = *getStreamSummary(now, stream, streamMap)
+		streamSummary := *getStreamSummary(now, stream, streamMap)
 
 		var err error
 		jsonData, err = json.Marshal(streamSummary)
@@ -184,17 +191,22 @@ func GetStreamHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(jsonData)
 }
 
-func GetAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
-	now := getTimestampForRequest(r.URL.Query(), nil)
-	streamMap := getStreamMapForTime(now)
-
+func GetAllStreamSummaries(now time.Time, streamMap map[string](map[string]int)) []StreamSummary {
 	var streamSummaries []StreamSummary
+	for stream, _ := range streamMap {
+		streamSummaries = append(streamSummaries, *getStreamSummary(now, stream, streamMap))
+	}
+	return streamSummaries
+}
+
+func GetAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
+	now := GetTimestampForRequest(r.URL.Query(), nil)
+	streamMap := GetStreamMapForTime(now)
+
 	var jsonData []byte
 
 	if len(streamMap) > 0 {
-		for stream, _ := range streamMap {
-			streamSummaries = append(streamSummaries, *getStreamSummary(now, stream, streamMap))
-		}
+		streamSummaries := GetAllStreamSummaries(now, streamMap)
 
 		var err error
 		jsonData, err = json.Marshal(streamSummaries)

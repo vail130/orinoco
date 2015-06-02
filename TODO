@@ -1,4 +1,5 @@
-- Support statistics on arbitrary data in stream by configuration
+- Support in-process deployment
+- Support statistics on specific data in a stream (config file)
 - Tap save stream to S3
 - Sieve master-slave support
 

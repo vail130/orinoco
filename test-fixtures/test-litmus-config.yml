@@ -1,4 +1,5 @@
-url: http://localhost:9966
+host: localhost
+port: 9966
 triggers:
   test_litmus_stream_more_than_10_per_minute:
     stream: test_litmus

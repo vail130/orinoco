@@ -16,21 +16,15 @@ import (
 )
 
 type Config struct {
-	SieveUrl  string            `yaml:"url"`
+	Host      string            `yaml:"host"`
+	Port      string            `yaml:"port"`
 	SaveFiles string            `yaml:"save_files"`
 	Streams   map[string]string `yaml:"streams"`
 }
 
-var saveConsumedLogFiles bool
+type StreamHandler func(string, []byte)
 
-func sendEventOverHttp(url string, data []byte) {
-	_, err := httputils.PostDataToUrl(url, "application/json", data)
-	if err != nil {
-		log.Fatalln(err)
-	}
-}
-
-func consumeLogs(logPath string, url string) {
+func ConsumeLogs(logPath string, streamName string, streamHandler StreamHandler, saveConsumedLogFiles bool) {
 	now := time.Now()
 	unixTimeStamp := strconv.FormatInt(now.Unix(), 10)
 	base64UUID, err := stringutils.GetBase64UUID()
@@ -57,7 +51,7 @@ func consumeLogs(logPath string, url string) {
 	for scanner.Scan() {
 		messageData := scanner.Bytes()
 		if string(messageData) != "null" {
-			sendEventOverHttp(url, messageData)
+			streamHandler(streamName, messageData)
 		}
 	}
 
@@ -81,17 +75,25 @@ func Pump(configPath string) {
 	var config Config
 	yaml.Unmarshal(configData, &config)
 
-	saveConsumedLogFiles = stringutils.StringToBool(config.SaveFiles)
+	sieveUrl := stringutils.Concat("http://", config.Host, ":", config.Port)
+	saveConsumedLogFiles := stringutils.StringToBool(config.SaveFiles)
+
+	streamHandler := func(streamName string, data []byte) {
+		streamUrl := stringutils.Concat(sieveUrl, "/streams/", streamName)
+		_, err := httputils.PostDataToUrl(streamUrl, "application/json", data)
+		if err != nil {
+			log.Fatalln(err)
+		}
+	}
 
 	for {
 		var wg sync.WaitGroup
-		for logPath, stream := range config.Streams {
-			streamUrl := stringutils.Concat(config.SieveUrl, "/streams/", stream)
+		for logPath, streamName := range config.Streams {
 			wg.Add(1)
-			go func(logPath string, streamUrl string) {
+			go func(logPath string, streamName string, streamHandler StreamHandler, saveConsumedLogFiles bool) {
 				defer wg.Done()
-				consumeLogs(logPath, streamUrl)
-			}(logPath, streamUrl)
+				ConsumeLogs(logPath, streamName, streamHandler, saveConsumedLogFiles)
+			}(logPath, streamName, streamHandler, saveConsumedLogFiles)
 		}
 		time.Sleep(time.Second)
 		wg.Wait()

@@ -1,4 +1,5 @@
 host: localhost
 port: 9966
 origin: http://localhost/
-log_path: /go/src/github.com/vail130/orinoco/tap.log
+streams:
+	test: /go/src/github.com/vail130/orinoco/tap.log

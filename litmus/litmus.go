@@ -24,7 +24,8 @@ type Trigger struct {
 }
 
 type Config struct {
-	Url      string             `yaml:"url"`
+	Host     string             `yaml:"host"`
+	Port     string             `yaml:"port"`
 	Triggers map[string]Trigger `yaml:"triggers"`
 }
 
@@ -50,7 +51,8 @@ func triggerStream(stream string, trigger Trigger, metricValue interface{}) {
 	httputils.PostDataToUrl(trigger.Endpoint, "application/json", jsonData)
 }
 
-func evaluateTriggerForStreamSummary(stream string, trigger Trigger, streamSummary sieve.StreamSummary, conditionRegexp *regexp.Regexp) {
+func evaluateTriggerForStreamSummary(stream string, trigger Trigger, streamSummary sieve.StreamSummary) {
+	conditionRegexp, _ := regexp.Compile(`([=<>]+)([0-9.]+)`)
 	if trigger.Stream == "*" || streamSummary.Stream == trigger.Stream {
 		fieldName := stringutils.UnderscoreToTitle(trigger.Metric)
 		reflectedValue := reflect.ValueOf(streamSummary)
@@ -99,9 +101,15 @@ func evaluateTriggerForStreamSummary(stream string, trigger Trigger, streamSumma
 	}
 }
 
-func monitorSieve(url string, triggerMap map[string]Trigger) {
-	conditionRegexp, _ := regexp.Compile(`([=<>]+)([0-9.]+)`)
+func EvaluateStreamSummaries(triggerMap map[string]Trigger, streamSummaries []sieve.StreamSummary) {
+	for stream, trigger := range triggerMap {
+		for i := 0; i < len(streamSummaries); i++ {
+			evaluateTriggerForStreamSummary(stream, trigger, streamSummaries[i])
+		}
+	}
+}
 
+func monitorSieve(url string, triggerMap map[string]Trigger) {
 	for {
 		data, err := httputils.GetDataFromUrl(url)
 		if err != nil {
@@ -113,13 +121,7 @@ func monitorSieve(url string, triggerMap map[string]Trigger) {
 		if err != nil {
 			log.Fatalln(err)
 		}
-
-		for stream, trigger := range triggerMap {
-			for i := 0; i < len(streamSummaries); i++ {
-				evaluateTriggerForStreamSummary(stream, trigger, streamSummaries[i], conditionRegexp)
-			}
-		}
-
+		EvaluateStreamSummaries(triggerMap, streamSummaries)
 		time.Sleep(time.Second)
 	}
 }
@@ -133,5 +135,6 @@ func Litmus(configPath string) {
 	var config Config
 	yaml.Unmarshal(configData, &config)
 
-	monitorSieve(stringutils.Concat(config.Url, "/streams"), config.Triggers)
+	url := stringutils.Concat("http://", config.Host, ":", config.Port)
+	monitorSieve(stringutils.Concat(url, "/streams"), config.Triggers)
 }

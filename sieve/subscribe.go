@@ -36,7 +36,7 @@ func deleteClient(ws *websocket.Conn) {
 	ActiveClientsRWMutex.Unlock()
 }
 
-func broadcastMessage(messageType int, message []byte) {
+func broadcastOverWebsocket(messageType int, message []byte) {
 	ActiveClientsRWMutex.Lock()
 	defer ActiveClientsRWMutex.Unlock()
 
