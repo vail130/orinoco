@@ -33,7 +33,4 @@ _testmain.go
 
 # Orinoco
 bin
-orinoco.log
-test.log
-pump.log*
-tap.log
+artifacts

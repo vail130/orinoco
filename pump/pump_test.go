@@ -26,7 +26,7 @@ func (s *PumpTestSuite) SetUpTest(c *check.C) {
 }
 
 func (s *PumpTestSuite) TestPumpConsumesLogFile(c *check.C) {
-	logPath, _ := filepath.Abs("../pump.log")
+	logPath, _ := filepath.Abs("../artifacts/pump.log")
 	if f, err := os.Create(logPath); err != nil {
 		f.Close()
 	}

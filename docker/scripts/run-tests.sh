@@ -6,9 +6,10 @@ export PROJECT_DIR=/go/src/github.com/vail130/orinoco
 export TEST=1
 
 # Remove artifacts of previous test runs
-rm -f ${PROJECT_DIR}/pump.log
-find ${PROJECT_DIR} -name "pump.log.*" -exec rm -f {} \;
-rm -f ${PROJECT_DIR}/tap.log
+mkdir -p ${PROJECT_DIR}/bin
+rm -rf ${PROJECT_DIR}/bin/*
+mkdir -p ${PROJECT_DIR}/artifacts
+rm -rf ${PROJECT_DIR}/artifacts/*
 
 # Build executable
 /usr/bin/go build -o ${PROJECT_DIR}/bin/orinoco ${PROJECT_DIR}/main.go
@@ -42,6 +43,10 @@ PUMP_PID=$!
 ${PROJECT_DIR}/bin/orinoco litmus -c ${PROJECT_DIR}/test-fixtures/test-litmus-config.yml &
 LITMUS_PID=$!
 
+# Start in-process orinoco service in the background
+${PROJECT_DIR}/bin/orinoco run -c ${PROJECT_DIR}/test-fixtures/test-orinoco-config.yml &
+ORINOCO_PID=$!
+
 # Specify packages to test here
 read -r -d '' PACKAGES << EOM
 sliceutils
@@ -64,4 +69,4 @@ for pkg in $PACKAGES; do
 done
 
 # Kill child processes
-kill $SIEVE_PID $TAP_PID $PUMP_PID $LITMUS_PID
+kill $SIEVE_PID $TAP_PID $PUMP_PID $LITMUS_PID $ORINOCO_PID

@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"log"
 	"sync"
-	"time"
 
 	"gopkg.in/yaml.v2"
 
@@ -19,7 +18,7 @@ import (
 type OrinocoConfig struct {
 	SaveFiles string                         `yaml:"save_files"`
 	Streams   map[string](map[string]string) `yaml:"streams"`
-	Triggers  map[string]litmus.Trigger      `yaml:"streams"`
+	Triggers  map[string]litmus.Trigger      `yaml:"triggers"`
 }
 
 func Orinoco(configPath string) {
@@ -43,17 +42,16 @@ func Orinoco(configPath string) {
 					source,
 					destination,
 				}
-				go stream.Process(wg, saveConsumedLogFiles)
+				go stream.Process(&wg, saveConsumedLogFiles)
 			}
 		}
-		time.Sleep(time.Second)
+		wg.Wait()
 
 		now := timeutils.UtcNow()
 		streamMap := sieve.GetStreamMapForTime(now)
 		streamSummaries := sieve.GetAllStreamSummaries(now, streamMap)
+		
 		litmus.EvaluateStreamSummaries(config.Triggers, streamSummaries)
-
-		wg.Wait()
 	}
 }
 
@@ -63,7 +61,8 @@ type Stream struct {
 	Destination string
 }
 
-func (stream *Stream) Process(wg sync.WaitGroup, saveConsumedLogFiles bool) {
+func (stream *Stream) Process(wg *sync.WaitGroup, saveConsumedLogFiles bool) {
+	defer wg.Done()
 	streamHandler := func(streamName string, data []byte) {
 		t := sieve.GetTimestampForRequest(nil, data)
 
@@ -72,6 +71,5 @@ func (stream *Stream) Process(wg sync.WaitGroup, saveConsumedLogFiles bool) {
 		}
 		sieve.ProcessStream(streamName, t, data, broadcastMessage)
 	}
-	defer wg.Done()
 	pump.ConsumeLogs(stream.Source, stream.Name, streamHandler, saveConsumedLogFiles)
 }

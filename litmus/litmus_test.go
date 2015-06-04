@@ -23,7 +23,7 @@ var _ = check.Suite(&LitmusTestSuite{})
 func (s *LitmusTestSuite) SetUpTest(c *check.C) {
 	httputils.Delete("http://localhost:9966/streams")
 
-	logPath, _ := filepath.Abs("../tap.log")
+	logPath, _ := filepath.Abs("../artifacts/tap.log")
 	os.Remove(logPath)
 	os.Create(logPath)
 }

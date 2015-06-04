@@ -24,7 +24,7 @@ var _ = check.Suite(&TapTestSuite{})
 func (s *TapTestSuite) SetUpTest(c *check.C) {
 	httputils.Delete("http://localhost:9966/streams")
 
-	logPath, _ := filepath.Abs("../tap.log")
+	logPath, _ := filepath.Abs("../artifacts/tap.log")
 	os.Remove(logPath)
 	os.Create(logPath)
 }
@@ -39,7 +39,7 @@ func (s *TapTestSuite) TestTapOutputsDataStreamLogFile(c *check.C) {
 
 	time.Sleep(1 * time.Second)
 
-	logPath, _ := filepath.Abs("../tap.log")
+	logPath, _ := filepath.Abs("../artifacts/tap.log")
 	file, err := os.OpenFile(logPath, os.O_RDONLY, 0666)
 	defer file.Close()
 	c.Assert(err, check.IsNil)

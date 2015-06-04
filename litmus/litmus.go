@@ -53,6 +53,7 @@ func triggerStream(stream string, trigger Trigger, metricValue interface{}) {
 
 func evaluateTriggerForStreamSummary(stream string, trigger Trigger, streamSummary sieve.StreamSummary) {
 	conditionRegexp, _ := regexp.Compile(`([=<>]+)([0-9.]+)`)
+		
 	if trigger.Stream == "*" || streamSummary.Stream == trigger.Stream {
 		fieldName := stringutils.UnderscoreToTitle(trigger.Metric)
 		reflectedValue := reflect.ValueOf(streamSummary)

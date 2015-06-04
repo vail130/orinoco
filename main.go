@@ -34,7 +34,7 @@ var (
 )
 
 func main() {
-	app.Version("0.0.4")
+	app.Version("0.0.5")
 
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 

@@ -1,12 +1,10 @@
 save_files: false
 streams:
-	test:
-		/go/src/github.com/vail130/orinoco/pump-test.log: /go/src/github.com/vail130/orinoco/tap-test.log
-	test_litmus:
-		/go/src/github.com/vail130/orinoco/pump-test_litmus.log: /go/src/github.com/vail130/orinoco/tap-test_litmus.log
+  test_litmus:
+    /go/src/github.com/vail130/orinoco/artifacts/pump-test_litmus.log: /go/src/github.com/vail130/orinoco/artifacts/tap-test_litmus.log
 triggers:
-	test_litmus_stream_more_than_10_per_minute:
-		stream: test_litmus
-		metric: minute_to_date
-		condition: ">10"
-		endpoint: http://localhost:9966/streams/test_litmus_stream_more_than_10_per_minute
+  test_litmus_stream_more_than_10_per_minute:
+    stream: test_litmus
+    metric: minute_to_date
+    condition: ">10"
+    endpoint: http://localhost:9966/streams/test_litmus_stream_more_than_10_per_minute

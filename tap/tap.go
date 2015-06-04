@@ -26,7 +26,7 @@ var loggingPermissions os.FileMode = 0666
 
 func LogMessage(logPath string, message []byte) {
 	if len(logPath) > 0 {
-		file, err := os.OpenFile(logPath, os.O_WRONLY|os.O_APPEND, loggingPermissions)
+		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, loggingPermissions)
 		if err != nil {
 			log.Fatalln(err)
 			return
