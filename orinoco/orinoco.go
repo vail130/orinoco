@@ -50,7 +50,7 @@ func Orinoco(configPath string) {
 		now := timeutils.UtcNow()
 		streamMap := sieve.GetStreamMapForTime(now)
 		streamSummaries := sieve.GetAllStreamSummaries(now, streamMap)
-		
+
 		litmus.EvaluateStreamSummaries(config.Triggers, streamSummaries)
 	}
 }
@@ -71,5 +71,12 @@ func (stream *Stream) Process(wg *sync.WaitGroup, saveConsumedLogFiles bool) {
 		}
 		sieve.ProcessStream(streamName, t, data, broadcastMessage)
 	}
-	pump.ConsumeLogs(stream.Source, stream.Name, streamHandler, saveConsumedLogFiles)
+	
+	logStreamer := pump.LogStreamer{
+		stream.Name,
+		saveConsumedLogFiles,
+		stream.Source,
+		"",
+	}
+	logStreamer.ConsumeLogs(streamHandler)
 }
