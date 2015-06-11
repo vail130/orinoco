@@ -15,8 +15,8 @@ rm -rf ${PROJECT_DIR}/artifacts/*
 /usr/bin/go build -o ${PROJECT_DIR}/bin/orinoco ${PROJECT_DIR}/main.go
 
 # Start sieve server in the background
-${PROJECT_DIR}/bin/orinoco sieve &
-SIEVE_PID=$!
+${PROJECT_DIR}/bin/orinoco ${PROJECT_DIR}/test-fixtures/test-config.yml &
+ORINOCO_PID=$!
 
 # Wait for sieve to come up on http://localhost:9966
 COUNT=0
@@ -31,30 +31,14 @@ do
     sleep 1
 done
 
-# Start tap service in the background
-${PROJECT_DIR}/bin/orinoco tap -c ${PROJECT_DIR}/test-fixtures/test-tap-config.yml &
-TAP_PID=$!
-
-# Start pump service in the background
-${PROJECT_DIR}/bin/orinoco pump -c ${PROJECT_DIR}/test-fixtures/test-pump-config.yml &
-PUMP_PID=$!
-
-# Start litmus service in the background
-${PROJECT_DIR}/bin/orinoco litmus -c ${PROJECT_DIR}/test-fixtures/test-litmus-config.yml &
-LITMUS_PID=$!
-
-# Start in-process orinoco service in the background
-${PROJECT_DIR}/bin/orinoco run -c ${PROJECT_DIR}/test-fixtures/test-orinoco-config.yml &
-ORINOCO_PID=$!
-
 # Specify packages to test here
+#tap
+#pump
 read -r -d '' PACKAGES << EOM
 sliceutils
 stringutils
 httputils
 sieve
-tap
-pump
 litmus
 orinoco
 EOM
@@ -69,4 +53,4 @@ for pkg in $PACKAGES; do
 done
 
 # Kill child processes
-kill $SIEVE_PID $TAP_PID $PUMP_PID $LITMUS_PID $ORINOCO_PID
+kill $ORINOCO_PID

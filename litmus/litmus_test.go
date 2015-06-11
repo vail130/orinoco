@@ -2,8 +2,6 @@ package litmus_test
 
 import (
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -22,28 +20,24 @@ var _ = check.Suite(&LitmusTestSuite{})
 
 func (s *LitmusTestSuite) SetUpTest(c *check.C) {
 	httputils.Delete("http://localhost:9966/streams")
-
-	logPath, _ := filepath.Abs("../artifacts/tap.log")
-	os.Remove(logPath)
-	os.Create(logPath)
 }
 
 func (s *LitmusTestSuite) TestLitmusTriggersCustomStream(c *check.C) {
 	testData := make([][]byte, 0)
 	for i := 0; i < 11; i++ {
 		jsonBytes := []byte(stringutils.Concat(`{"a":1}`, "\n"))
-		httputils.PostDataToUrl("http://localhost:9966/streams/test_litmus", "application/json", jsonBytes)
+		httputils.PostDataToUrl("http://localhost:9966/streams/test2", "application/json", jsonBytes)
 		testData = append(testData, jsonBytes)
 	}
 
 	time.Sleep(1 * time.Second)
 
-	data, err := httputils.GetDataFromUrl("http://localhost:9966/streams/test_litmus_stream_more_than_10_per_minute")
+	data, err := httputils.GetDataFromUrl("http://localhost:9966/streams/test2_stream_more_than_10_per_minute")
 	c.Assert(err, check.IsNil)
 
 	var streamSummary sieve.StreamSummary
 	json.Unmarshal(data, &streamSummary)
 
-	c.Assert(streamSummary.Stream, check.Equals, "test_litmus_stream_more_than_10_per_minute")
+	c.Assert(streamSummary.Stream, check.Equals, "test2_stream_more_than_10_per_minute")
 	c.Assert(streamSummary.MinuteToDate > 0, check.Equals, true)
 }

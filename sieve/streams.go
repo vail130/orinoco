@@ -2,14 +2,20 @@ package sieve
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 
+	"github.com/vail130/orinoco/httputils"
+	"github.com/vail130/orinoco/sliceutils"
 	"github.com/vail130/orinoco/timeutils"
 )
 
@@ -29,11 +35,23 @@ type StreamSummary struct {
 	ChangePerHour            int     `json:"change_per_hour"`
 }
 
-type Stream struct {
+type Event struct {
 	Stream    string `json:"stream"`
 	Timestamp string `json:"timestamp"`
 	Data      string `json:"data"`
 }
+
+type StdoutStream struct{}
+type LogStream struct {
+	LogDir string
+}
+type HTTPStream struct {
+	URL string
+}
+
+//type WebsocketStream struct {
+//	URL string
+//}
 
 // Reference time for formats: Mon Jan 2 15:04:05 -0700 MST 2006
 const dateKeyFormat = "2006-01-02"
@@ -72,51 +90,6 @@ func GetTimestampForRequest(queryValues url.Values, data []byte) time.Time {
 	return timeutils.UtcNow()
 }
 
-type Broadcaster func([]byte)
-
-func ProcessStream(stream string, t time.Time, data []byte, broadcastMessage Broadcaster) error {
-	trackStreamForTime(stream, t)
-
-	streamData := Stream{
-		stream,
-		t.Format(time.RFC3339),
-		string(data),
-	}
-
-	jsonData, err := json.Marshal(streamData)
-	if err != nil {
-		return err
-	}
-
-	broadcastMessage(jsonData)
-
-	return nil
-}
-
-func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	stream := vars["stream"]
-
-	defer r.Body.Close()
-	data, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		data = make([]byte, 0)
-	}
-
-	broadcastMessage := func(data []byte) {
-		broadcastOverWebsocket(websocket.TextMessage, data)
-	}
-
-	t := GetTimestampForRequest(r.URL.Query(), data)
-	err = ProcessStream(stream, t, data, broadcastMessage)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-
-	w.WriteHeader(http.StatusCreated)
-}
-
 func trackStreamForTime(stream string, t time.Time) {
 	streamMap := GetStreamMapForTime(t)
 	deleteObsoleteDateKeysForTime(t)
@@ -141,180 +114,82 @@ func trackStreamForTime(stream string, t time.Time) {
 	}
 }
 
-func GetStreamMapForTime(t time.Time) map[string](map[string]int) {
-	dateKey := t.Format(dateKeyFormat)
-	streamMap, ok := dateMap[dateKey]
-	if ok == false {
-		dateMap[dateKey] = make(map[string](map[string]int))
-		streamMap = dateMap[dateKey]
-		dateKeyMap[dateKey] = t
-	}
-
-	return streamMap
+func (stream *StdoutStream) Process(wg *sync.WaitGroup, data []byte) {
+	defer wg.Done()
+	fmt.Println(string(data))
 }
 
-func deleteObsoleteDateKeysForTime(t time.Time) {
-	// Delete date keys more than 24 hours old
-	startTime := t.AddDate(0, 0, -1)
-	for dateKey, tt := range dateKeyMap {
-		if tt.Year() < startTime.Year() ||
-			(tt.Year() == startTime.Year() && tt.Month() < startTime.Month()) ||
-			(tt.Year() == startTime.Year() && tt.Month() == startTime.Month() && tt.Day() < startTime.Day()) {
-			delete(dateKeyMap, dateKey)
-		}
+func (stream *LogStream) Process(wg *sync.WaitGroup, data []byte) {
+	defer wg.Done()
+	file, err := os.OpenFile(stream.LogDir, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalln(err)
+		return
 	}
+
+	data = sliceutils.ConcatByteSlices(data, []byte("\n"))
+	file.Write(data)
+	file.Close()
 }
 
-func GetStreamHandler(w http.ResponseWriter, r *http.Request) {
+func (stream *HTTPStream) Process(wg *sync.WaitGroup, data []byte) {
+	defer wg.Done()
+	httputils.PostDataToUrl(stream.URL, "application/json", data)
+}
+
+//func (stream *WebsocketStream) Process(wg *sync.WaitGroup, data []byte) {
+//	defer wg.Done()
+
+//}
+
+func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	stream := vars["stream"]
 
-	now := GetTimestampForRequest(r.URL.Query(), nil)
-	streamMap := GetStreamMapForTime(now)
-
-	var jsonData []byte
-
-	if _, ok := streamMap[stream]; ok {
-		streamSummary := *getStreamSummary(now, stream, streamMap)
-
-		var err error
-		jsonData, err = json.Marshal(streamSummary)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		jsonData = []byte("null")
+	defer r.Body.Close()
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		data = make([]byte, 0)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonData)
-}
+	t := GetTimestampForRequest(r.URL.Query(), data)
+	trackStreamForTime(stream, t)
 
-func GetAllStreamSummaries(now time.Time, streamMap map[string](map[string]int)) []StreamSummary {
-	var streamSummaries []StreamSummary
-	for stream, _ := range streamMap {
-		streamSummaries = append(streamSummaries, *getStreamSummary(now, stream, streamMap))
-	}
-	return streamSummaries
-}
+	var wg sync.WaitGroup
+	for i := 0; i < len(configuredStreams); i++ {
+		switch {
 
-func GetAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
-	now := GetTimestampForRequest(r.URL.Query(), nil)
-	streamMap := GetStreamMapForTime(now)
+		case configuredStreams[i] == "-":
+			stream := StdoutStream{}
+			wg.Add(1)
+			go stream.Process(&wg, data)
 
-	var jsonData []byte
-
-	if len(streamMap) > 0 {
-		streamSummaries := GetAllStreamSummaries(now, streamMap)
-
-		var err error
-		jsonData, err = json.Marshal(streamSummaries)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		jsonData = []byte("null")
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonData)
-}
-
-func getStreamSummary(now time.Time, stream string, streamMap map[string](map[string]int)) *StreamSummary {
-	timeUnits := map[string]time.Duration{
-		"hour":   time.Hour,
-		"minute": time.Minute,
-		"second": time.Second,
-	}
-
-	keyFormats := map[string]string{
-		"hour":   hourKeyFormat,
-		"minute": minuteKeyFormat,
-		"second": secondKeyFormat,
-	}
-
-	valuesToDate := map[string]int{
-		"hour":   0,
-		"minute": 0,
-		"second": 0,
-	}
-
-	trailingCounts := map[string]int{
-		"hour":   0,
-		"minute": 0,
-		"second": 0,
-	}
-
-	changePerPeriod := map[string]int{
-		"hour":   0,
-		"minute": 0,
-		"second": 0,
-	}
-
-	var timeKey1 string
-	var timeKey2 string
-	var timeKey3 string
-
-	if timeMap, streamExists := streamMap[stream]; streamExists {
-		for period, _ := range trailingCounts {
-			if periodToDate, timeKeyExists := timeMap[now.Format(keyFormats[period])]; timeKeyExists {
-				valuesToDate[period] = periodToDate
+		case strings.HasPrefix(configuredStreams[i], "/"):
+			stream := LogStream{
+				configuredStreams[i],
 			}
+			wg.Add(1)
+			go stream.Process(&wg, data)
 
-			onePeriodAgo := now.Add(-1 * timeUnits[period])
-			timeKey1 = onePeriodAgo.Format(keyFormats[period])
-			timeValue1, timeKey1Exists := timeMap[timeKey1]
-			if timeKey1Exists {
-				trailingCounts[period] += timeValue1
+		case strings.HasPrefix(configuredStreams[i], "http"):
+			stream := HTTPStream{
+				configuredStreams[i],
 			}
+			wg.Add(1)
+			go stream.Process(&wg, data)
 
-			twoPeriodsAgo := now.Add(-2 * timeUnits[period])
-			timeKey2 = twoPeriodsAgo.Format(keyFormats[period])
-			timeValue2, timeKey2Exists := timeMap[timeKey2]
-			if timeKey2Exists {
-				trailingCounts[period] += timeValue2
-			}
+			//		case strings.HasPrefix(configuredStreams[i], "ws"):
+			//			stream := WebsocketStream{
+			//				configuredStreams[i],
+			//			}
+			//			wg.Add(1)
+			//			go stream.Process(&wg, data)
 
-			threePeriodsAgo := now.Add(-3 * timeUnits[period])
-			timeKey3 = threePeriodsAgo.Format(keyFormats[period])
-			timeValue3, timeKey3Exists := timeMap[timeKey3]
-			if timeKey3Exists {
-				trailingCounts[period] += timeValue3
-			}
+			// TODO
+			// Add other streams
 
-			if timeKey1Exists {
-				changePerPeriod[period] = timeValue1
-				if timeKey2Exists {
-					changePerPeriod[period] = timeValue1 - timeValue2
-				}
-			}
 		}
 	}
-
-	projectedThisMinute := float32(valuesToDate["minute"]) / float32(now.Second()+1) * float32(60)
-	projectedThisHour := float32(valuesToDate["hour"]) / float32(now.Minute()+1) * float32(60)
-
-	return &StreamSummary{
-		stream,
-		now.Format(time.RFC3339),
-		valuesToDate["second"],
-		valuesToDate["minute"],
-		valuesToDate["hour"],
-		projectedThisMinute,
-		projectedThisHour,
-		float32(trailingCounts["second"]) / float32(3.0),
-		float32(trailingCounts["minute"]) / float32(3.0),
-		float32(trailingCounts["hour"]) / float32(3.0),
-		changePerPeriod["second"],
-		changePerPeriod["minute"],
-		changePerPeriod["hour"],
-	}
-}
-
-func DeleteAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
-	dateMap = make(map[string](map[string](map[string]int)))
-	dateKeyMap = make(map[string]time.Time)
-	w.WriteHeader(http.StatusNoContent)
+	wg.Wait()
+	w.WriteHeader(http.StatusOK)
 }

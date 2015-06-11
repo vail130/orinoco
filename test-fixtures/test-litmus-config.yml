@@ -1,8 +1,0 @@
-host: localhost
-port: 9966
-triggers:
-  test_litmus_stream_more_than_10_per_minute:
-    stream: test_litmus
-    metric: minute_to_date
-    condition: ">10"
-    endpoint: http://localhost:9966/streams/test_litmus_stream_more_than_10_per_minute

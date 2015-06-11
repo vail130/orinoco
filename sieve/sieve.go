@@ -11,17 +11,18 @@ import (
 )
 
 var isTestEnv bool
+var configuredStreams []string
 
-func Sieve(port string, boundary string) {
-	sieveBoundary = []byte(boundary)
+func Sieve(port string, streams []string) {
 	isTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
+	configuredStreams = streams
 
 	r := mux.NewRouter()
 	r.HandleFunc("/streams", GetAllStreamsHandler).Methods("GET")
 	r.HandleFunc("/streams", DeleteAllStreamsHandler).Methods("DELETE")
 	r.HandleFunc("/streams/{stream}", GetStreamHandler).Methods("GET")
 	r.HandleFunc("/streams/{stream}", PostStreamHandler).Methods("POST")
-	r.HandleFunc("/subscribe", SubscribeHandler)
+	//	r.HandleFunc("/subscribe", SubscribeHandler)
 	http.Handle("/", r)
 
 	port = stringutils.Concat(":", port)

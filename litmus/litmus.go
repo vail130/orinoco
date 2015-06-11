@@ -2,18 +2,16 @@ package litmus
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"reflect"
 	"regexp"
 	"strconv"
 	"time"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/vail130/orinoco/httputils"
 	"github.com/vail130/orinoco/sieve"
 	"github.com/vail130/orinoco/stringutils"
+	"github.com/vail130/orinoco/timeutils"
 )
 
 type Trigger struct {
@@ -51,7 +49,7 @@ func triggerStream(stream string, trigger Trigger, metricValue interface{}) {
 	httputils.PostDataToUrl(trigger.Endpoint, "application/json", jsonData)
 }
 
-func evaluateTriggerForStreamSummary(stream string, trigger Trigger, streamSummary sieve.StreamSummary) {
+func evaluateTriggerForStreamSummary(trigger Trigger, streamSummary sieve.StreamSummary) {
 	conditionRegexp, _ := regexp.Compile(`([=<>]+)([0-9.]+)`)
 
 	if trigger.Stream == "*" || streamSummary.Stream == trigger.Stream {
@@ -77,7 +75,7 @@ func evaluateTriggerForStreamSummary(stream string, trigger Trigger, streamSumma
 				(condition == ">=" && metricValue >= num) ||
 				(condition == "<" && metricValue < num) ||
 				(condition == "<=" && metricValue <= num) {
-				go triggerStream(stream, trigger, metricValue)
+				go triggerStream(streamSummary.Stream, trigger, metricValue)
 			}
 
 		} else if metricValueType == "float" {
@@ -95,47 +93,28 @@ func evaluateTriggerForStreamSummary(stream string, trigger Trigger, streamSumma
 				(condition == ">=" && metricValue >= num) ||
 				(condition == "<" && metricValue < num) ||
 				(condition == "<=" && metricValue <= num) {
-				go triggerStream(stream, trigger, metricValue)
+				go triggerStream(streamSummary.Stream, trigger, metricValue)
 			}
 
 		}
 	}
 }
 
-func EvaluateStreamSummaries(triggerMap map[string]Trigger, streamSummaries []sieve.StreamSummary) {
-	for stream, trigger := range triggerMap {
-		for i := 0; i < len(streamSummaries); i++ {
-			evaluateTriggerForStreamSummary(stream, trigger, streamSummaries[i])
+func evaluateStreamSummaries(triggers []Trigger, streamSummaries []sieve.StreamSummary) {
+	for i := 0; i < len(triggers); i++ {
+		for j := 0; j < len(streamSummaries); j++ {
+			evaluateTriggerForStreamSummary(triggers[i], streamSummaries[j])
 		}
 	}
 }
 
-func monitorSieve(url string, triggerMap map[string]Trigger) {
+func Litmus(triggers []Trigger) {
 	for {
-		data, err := httputils.GetDataFromUrl(url)
-		if err != nil {
-			data = make([]byte, 0)
-		}
-
-		var streamSummaries []sieve.StreamSummary
-		err = json.Unmarshal(data, &streamSummaries)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		EvaluateStreamSummaries(triggerMap, streamSummaries)
 		time.Sleep(time.Second)
+
+		now := timeutils.UtcNow()
+		streamMap := sieve.GetStreamMapForTime(now)
+		streamSummaries := sieve.GetAllStreamSummaries(now, streamMap)
+		evaluateStreamSummaries(triggers, streamSummaries)
 	}
-}
-
-func Litmus(configPath string) {
-	configData, err := ioutil.ReadFile(configPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var config Config
-	yaml.Unmarshal(configData, &config)
-
-	url := stringutils.Concat("http://", config.Host, ":", config.Port)
-	monitorSieve(stringutils.Concat(url, "/streams"), config.Triggers)
 }

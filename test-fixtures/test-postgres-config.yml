@@ -1,0 +1,9 @@
+port: 9966
+streams:
+  - postgres://user:pass@localhost:5432/streams
+triggers:
+  test2_stream_more_than_10_per_minute:
+    stream: test2
+    metric: minute_to_date
+    condition: ">10"
+    endpoint: http://localhost:9966/streams/test2_stream_more_than_10_per_minute
