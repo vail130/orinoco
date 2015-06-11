@@ -1,22 +1,25 @@
+- Decide what to do with tap
+- Decide what to do with pump
+- Save stream to S3
+- Save stream to Postgres
+- Save stream to MySQL
+- Save stream to Redis
 - Support statistics on specific data in a stream (config file)
-- Tap save stream to S3
-- Sieve master-slave support
+- Sieve deletion of data for individual event
+- Support timezone configuration
 
 ===================================================
 
+- Save stream to websocket
 - Set up CI (Travis?)
 - Split unit and integration tests (http://peter.bourgon.org/go-in-production/#testing-and-validation)
-- Sieve deletion of data for individual event
 
 ===================================================
 
 - Automate package detection for running tests
 - Support HTTPS
-- Support timezones for sieve data stream tracking
 
 ===================================================
 
-- Support updating custom data tracking by API
 - Sieve stats compared to previous day (only hour?)
-
 - Support triggers enabling after a grace period on startup
