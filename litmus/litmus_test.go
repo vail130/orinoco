@@ -9,7 +9,6 @@ import (
 
 	"github.com/vail130/orinoco/httputils"
 	"github.com/vail130/orinoco/sieve"
-	"github.com/vail130/orinoco/stringutils"
 )
 
 func TestLitmus(t *testing.T) { check.TestingT(t) }
@@ -25,7 +24,7 @@ func (s *LitmusTestSuite) SetUpTest(c *check.C) {
 func (s *LitmusTestSuite) TestLitmusTriggersCustomStream(c *check.C) {
 	testData := make([][]byte, 0)
 	for i := 0; i < 11; i++ {
-		jsonBytes := []byte(stringutils.Concat(`{"a":1}`, "\n"))
+		jsonBytes := []byte(`{"a":1}`)
 		httputils.PostDataToUrl("http://localhost:9966/streams/test2", "application/json", jsonBytes)
 		testData = append(testData, jsonBytes)
 	}

@@ -1,6 +1,5 @@
 port: 9966
 streams:
-  - "-"
   - /go/src/github.com/vail130/orinoco/artifacts/logs/
   - http://localhost:9966/streams/
   - ws://localhost:9966/streams/

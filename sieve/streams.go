@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"path"
+	"path/filepath"
 	"os"
 	"strings"
 	"sync"
@@ -16,6 +18,7 @@ import (
 
 	"github.com/vail130/orinoco/httputils"
 	"github.com/vail130/orinoco/sliceutils"
+	"github.com/vail130/orinoco/stringutils"
 	"github.com/vail130/orinoco/timeutils"
 )
 
@@ -114,14 +117,17 @@ func trackStreamForTime(stream string, t time.Time) {
 	}
 }
 
-func (stream *StdoutStream) Process(wg *sync.WaitGroup, data []byte) {
+func (stream *StdoutStream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
 	defer wg.Done()
 	fmt.Println(string(data))
 }
 
-func (stream *LogStream) Process(wg *sync.WaitGroup, data []byte) {
+func (stream *LogStream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
 	defer wg.Done()
-	file, err := os.OpenFile(stream.LogDir, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	
+	os.MkdirAll(path.Dir(stream.LogDir), 0666)
+	logFile := filepath.Join(stream.LogDir, stringutils.Concat(streamName, ".log"))
+	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln(err)
 		return
@@ -132,19 +138,19 @@ func (stream *LogStream) Process(wg *sync.WaitGroup, data []byte) {
 	file.Close()
 }
 
-func (stream *HTTPStream) Process(wg *sync.WaitGroup, data []byte) {
+func (stream *HTTPStream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
 	defer wg.Done()
 	httputils.PostDataToUrl(stream.URL, "application/json", data)
 }
 
-//func (stream *WebsocketStream) Process(wg *sync.WaitGroup, data []byte) {
+//func (stream *WebsocketStream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
 //	defer wg.Done()
 
 //}
 
 func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	stream := vars["stream"]
+	streamName := vars["stream"]
 
 	defer r.Body.Close()
 	data, err := ioutil.ReadAll(r.Body)
@@ -153,7 +159,7 @@ func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := GetTimestampForRequest(r.URL.Query(), data)
-	trackStreamForTime(stream, t)
+	trackStreamForTime(streamName, t)
 
 	var wg sync.WaitGroup
 	for i := 0; i < len(configuredStreams); i++ {
@@ -162,28 +168,28 @@ func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 		case configuredStreams[i] == "-":
 			stream := StdoutStream{}
 			wg.Add(1)
-			go stream.Process(&wg, data)
+			go stream.Process(&wg, streamName, data)
 
 		case strings.HasPrefix(configuredStreams[i], "/"):
 			stream := LogStream{
 				configuredStreams[i],
 			}
 			wg.Add(1)
-			go stream.Process(&wg, data)
+			go stream.Process(&wg, streamName, data)
 
 		case strings.HasPrefix(configuredStreams[i], "http"):
 			stream := HTTPStream{
 				configuredStreams[i],
 			}
 			wg.Add(1)
-			go stream.Process(&wg, data)
+			go stream.Process(&wg, streamName, data)
 
 			//		case strings.HasPrefix(configuredStreams[i], "ws"):
 			//			stream := WebsocketStream{
 			//				configuredStreams[i],
 			//			}
 			//			wg.Add(1)
-			//			go stream.Process(&wg, data)
+			//			go stream.Process(&wg, streamName, data)
 
 			// TODO
 			// Add other streams

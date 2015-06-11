@@ -40,7 +40,6 @@ stringutils
 httputils
 sieve
 litmus
-orinoco
 EOM
 
 # Run all packages or only one specified in environment.
