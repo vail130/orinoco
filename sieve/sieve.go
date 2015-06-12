@@ -11,9 +11,9 @@ import (
 )
 
 var isTestEnv bool
-var configuredStreams []string
+var configuredStreams [](map[string]string)
 
-func Sieve(port string, streams []string) {
+func Sieve(port string, streams [](map[string]string)) {
 	isTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
 	configuredStreams = streams
 

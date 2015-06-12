@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	Port     string           `yaml:"port"`
-	Streams  []string         `yaml:"streams"`
+	Streams  [](map[string]string)         `yaml:"streams"`
 	Triggers []litmus.Trigger `yaml:"triggers"`
 }
 

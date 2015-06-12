@@ -1,6 +1,12 @@
 port: 9966
 streams:
-  - mysql://user:pass@localhost:3306/streams
+  -
+    type: mysql
+	user: user
+	password: pass
+	host: localhost
+	port: 3306
+	database: streams
 triggers:
   test2_stream_more_than_10_per_minute:
     stream: test2

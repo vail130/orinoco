@@ -1,11 +1,7 @@
 port: 9966
 streams:
   -
-    type: log
-	path: /go/src/github.com/vail130/orinoco/artifacts/logs/
-  -
-    type: http
-	url: http://localhost:9966/streams/
+    type: stdout
 triggers:
   -
     stream: test2

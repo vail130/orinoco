@@ -1,6 +1,12 @@
 port: 9966
 streams:
-  - redis://user:pass@localhost:6379/streams
+  -
+    type: redis
+	user: user
+	password: pass
+	host: localhost
+	port: 6379
+	database: streams
 triggers:
   test2_stream_more_than_10_per_minute:
     stream: test2

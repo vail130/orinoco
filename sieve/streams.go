@@ -46,15 +46,19 @@ type Event struct {
 
 type StdoutStream struct{}
 type LogStream struct {
-	LogDir string
+	Path string
 }
 type HTTPStream struct {
 	URL string
 }
 
-//type WebsocketStream struct {
-//	URL string
-//}
+type S3Stream struct {
+	AccessKeyId string `json:"access_key_id"`
+	SecretAccessKey string `json:"secret_access_key"`
+	Region string `json:"region"`
+	Bucket string `json:"bucket"`
+	Prefix string `json:"prefix"`
+}
 
 // Reference time for formats: Mon Jan 2 15:04:05 -0700 MST 2006
 const dateKeyFormat = "2006-01-02"
@@ -125,8 +129,8 @@ func (stream *StdoutStream) Process(wg *sync.WaitGroup, streamName string, data 
 func (stream *LogStream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
 	defer wg.Done()
 	
-	os.MkdirAll(path.Dir(stream.LogDir), 0666)
-	logFile := filepath.Join(stream.LogDir, stringutils.Concat(streamName, ".log"))
+	os.MkdirAll(path.Dir(stream.Path), 0666)
+	logFile := filepath.Join(stream.Path, stringutils.Concat(streamName, ".log"))
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalln(err)
@@ -143,10 +147,10 @@ func (stream *HTTPStream) Process(wg *sync.WaitGroup, streamName string, data []
 	httputils.PostDataToUrl(stream.URL, "application/json", data)
 }
 
-//func (stream *WebsocketStream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
-//	defer wg.Done()
+func (stream *S3Stream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
+	defer wg.Done()
 
-//}
+}
 
 func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
@@ -165,31 +169,35 @@ func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < len(configuredStreams); i++ {
 		switch {
 
-		case configuredStreams[i] == "-":
+		case configuredStreams[i]["type"] == "stdout":
 			stream := StdoutStream{}
 			wg.Add(1)
 			go stream.Process(&wg, streamName, data)
 
-		case strings.HasPrefix(configuredStreams[i], "/"):
+		case configuredStreams[i]["type"] == "log":
 			stream := LogStream{
-				configuredStreams[i],
+				configuredStreams[i]["path"],
 			}
 			wg.Add(1)
 			go stream.Process(&wg, streamName, data)
 
-		case strings.HasPrefix(configuredStreams[i], "http"):
+		case configuredStreams[i]["type"] == "http":
 			stream := HTTPStream{
-				configuredStreams[i],
+				configuredStreams[i]["url"],
 			}
 			wg.Add(1)
 			go stream.Process(&wg, streamName, data)
 
-			//		case strings.HasPrefix(configuredStreams[i], "ws"):
-			//			stream := WebsocketStream{
-			//				configuredStreams[i],
-			//			}
-			//			wg.Add(1)
-			//			go stream.Process(&wg, streamName, data)
+		case configuredStreams[i]["type"] == "s3":
+			stream := S3Stream{
+				configuredStreams[i]["access_key_id"],
+				configuredStreams[i]["secret_access_key"],
+				configuredStreams[i]["region"],
+				configuredStreams[i]["bucket"],
+				configuredStreams[i]["prefix"],
+			}
+			wg.Add(1)
+			go stream.Process(&wg, streamName, data)
 
 			// TODO
 			// Add other streams
