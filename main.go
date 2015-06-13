@@ -11,7 +11,7 @@ var (
 )
 
 func main() {
-	kingpin.Version("0.0.6")
+	kingpin.Version("0.0.7")
 	kingpin.Parse()
 	orinoco.Orinoco(*config)
 }

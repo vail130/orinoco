@@ -36,7 +36,7 @@ func GetStreamHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	stream := vars["stream"]
 
-	now := GetTimestampForRequest(r.URL.Query(), nil)
+	now := getTimestampForRequest(r.URL.Query(), nil)
 	streamMap := GetStreamMapForTime(now)
 
 	var jsonData []byte
@@ -67,7 +67,7 @@ func GetAllStreamSummaries(now time.Time, streamMap map[string](map[string]int))
 }
 
 func GetAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
-	now := GetTimestampForRequest(r.URL.Query(), nil)
+	now := getTimestampForRequest(r.URL.Query(), nil)
 	streamMap := GetStreamMapForTime(now)
 
 	var jsonData []byte
