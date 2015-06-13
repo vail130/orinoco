@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Unpack arguments
+TEST_TYPE=$1
+
 # Set up env variables
 export GOPATH=/go:/go/src/github.com/vail130/orinoco/Godeps/_workspace
 export PROJECT_DIR=/go/src/github.com/vail130/orinoco
@@ -15,7 +18,13 @@ rm -rf ${PROJECT_DIR}/artifacts/*
 /usr/bin/go build -o ${PROJECT_DIR}/bin/orinoco ${PROJECT_DIR}/main.go
 
 # Start sieve server in the background
-${PROJECT_DIR}/bin/orinoco ${PROJECT_DIR}/test-fixtures/test-config.yml &
+if [ "${TEST_TYPE}" == "s3" ]; then
+	TEST_CONFIG=${PROJECT_DIR}/test-fixtures/test-s3-config.yml
+else
+	TEST_CONFIG=${PROJECT_DIR}/test-fixtures/test-config.yml
+fi
+
+${PROJECT_DIR}/bin/orinoco $TEST_CONFIG &
 ORINOCO_PID=$!
 
 # Wait for sieve to come up on http://localhost:9966

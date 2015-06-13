@@ -2,6 +2,7 @@ package stringutils
 
 import (
 	"bytes"
+	"encoding/base32"
 	"encoding/base64"
 	"os"
 	"strings"
@@ -32,6 +33,17 @@ func StringToBool(s string) bool {
 	}
 
 	return true
+}
+
+func GetBase32UUID() (string, error) {
+	devUrandom, err := os.Open("/dev/urandom")
+	if err != nil {
+		return "", err
+	}
+
+	uuid := make([]byte, 16)
+	devUrandom.Read(uuid)
+	return base32.StdEncoding.EncodeToString([]byte(uuid)), nil
 }
 
 func GetBase64UUID() (string, error) {

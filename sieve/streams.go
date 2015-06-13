@@ -178,16 +178,23 @@ func (stream *S3Stream) Process(wg *sync.WaitGroup, streamName string, data []by
 	}
 
 	unixTimeStamp := strconv.FormatInt(now.Unix(), 10)
-	base64UUID, err := stringutils.GetBase64UUID()
+	base32UUID, err := stringutils.GetBase32UUID()
 	if err != nil {
 		log.Fatalln(err)
 		return
 	}
-	objectKey := stringutils.Concat(prefix, unixTimeStamp, "_", base64UUID, ".gz")
+	
+	base32UUID = strings.TrimSuffix(base32UUID, "======")
+	objectKey := stringutils.Concat(prefix, unixTimeStamp, "_", base32UUID, ".gz")
 
 	compressedData := compressutils.GzipData(data)
 
-	bucket.Put(objectKey, compressedData, "binary/octet-stream", "private")
+	log.Println("S3 PUT", stream.Bucket, objectKey, string(data))
+	err = bucket.Put(objectKey, compressedData, "binary/octet-stream", s3.Private)
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
 }
 
 func PostStreamHandler(w http.ResponseWriter, r *http.Request) {

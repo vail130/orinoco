@@ -3,7 +3,7 @@ streams:
   -
     type: s3
     region: us-east-1
-    bucket: streams
+    bucket: orinoco-test
     prefix: "{{stream}}/{{year}}/{{month}}/{{day}}/"
 triggers:
   test2_stream_more_than_10_per_minute:

@@ -1,4 +1,4 @@
-- Save stream to S3
+- Configurable stream batching to s3
 
 - Save stream to Postgres
 - Save stream to MySQL
