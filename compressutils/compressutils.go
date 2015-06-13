@@ -10,5 +10,5 @@ func GzipData(data []byte) []byte {
 	w := gzip.NewWriter(&compressedData)
 	defer w.Close()
 	w.Write(data)
-	return compressedData
+	return compressedData.Bytes()
 }

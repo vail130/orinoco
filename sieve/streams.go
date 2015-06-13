@@ -7,15 +7,16 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"path/filepath"
-	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
-	
+
 	"gopkg.in/amz.v1/aws"
 	"gopkg.in/amz.v1/s3"
 
@@ -57,11 +58,11 @@ type HTTPStream struct {
 }
 
 type S3Stream struct {
-	AccessKeyId string `json:"access_key_id"`
+	AccessKeyId     string `json:"access_key_id"`
 	SecretAccessKey string `json:"secret_access_key"`
-	Region string `json:"region"`
-	Bucket string `json:"bucket"`
-	Prefix string `json:"prefix"`
+	Region          string `json:"region"`
+	Bucket          string `json:"bucket"`
+	Prefix          string `json:"prefix"`
 }
 
 // Reference time for formats: Mon Jan 2 15:04:05 -0700 MST 2006
@@ -132,7 +133,7 @@ func (stream *StdoutStream) Process(wg *sync.WaitGroup, streamName string, data 
 
 func (stream *LogStream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
 	defer wg.Done()
-	
+
 	os.MkdirAll(path.Dir(stream.Path), 0666)
 	logFile := filepath.Join(stream.Path, stringutils.Concat(streamName, ".log"))
 	file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
@@ -154,13 +155,13 @@ func (stream *HTTPStream) Process(wg *sync.WaitGroup, streamName string, data []
 func (stream *S3Stream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
 	defer wg.Done()
 	auth, err := aws.EnvAuth()
-    if err != nil {
+	if err != nil {
 		log.Fatalln(err)
-        return
-    }
-    s3Instance := s3.New(auth, aws.Regions[stream.Region])
+		return
+	}
+	s3Instance := s3.New(auth, aws.Regions[stream.Region])
 	bucket := s3Instance.Bucket(stream.Bucket)
-	
+
 	prefix := stream.Prefix
 	now := timeutils.UtcNow()
 	if strings.Contains(prefix, "{{stream}}") {
@@ -175,17 +176,17 @@ func (stream *S3Stream) Process(wg *sync.WaitGroup, streamName string, data []by
 	if strings.Contains(prefix, "{{day}}") {
 		prefix = strings.Replace(prefix, "{{day}}", now.Format("02"), -1)
 	}
-	
+
 	unixTimeStamp := strconv.FormatInt(now.Unix(), 10)
 	base64UUID, err := stringutils.GetBase64UUID()
 	if err != nil {
 		log.Fatalln(err)
-		return err
+		return
 	}
 	objectKey := stringutils.Concat(prefix, unixTimeStamp, "_", base64UUID, ".gz")
-	
+
 	compressedData := compressutils.GzipData(data)
-	
+
 	bucket.Put(objectKey, compressedData, "binary/octet-stream", "private")
 }
 
