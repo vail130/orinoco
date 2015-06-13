@@ -28,11 +28,18 @@
 			"Rev": "f6ab6f63e2d390b0aae35cebd053f6976ad5442b"
 		},
 		{
-			"ImportPath": "gopkg.in/yaml.v2",
-			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
+			"ImportPath": "gopkg.in/amz.v1/aws",
+			"Comment": "v1.0",
+			"Rev": "ad23e96a31d28364dc0290f44b1a922aba379e18"
 		},
 		{
-			"ImportPath": "gopkg.in/check.v1"
+			"ImportPath": "gopkg.in/amz.v1/s3",
+			"Comment": "v1.0",
+			"Rev": "ad23e96a31d28364dc0290f44b1a922aba379e18"
+		},
+		{
+			"ImportPath": "gopkg.in/yaml.v2",
+			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
 		}
 	]
 }

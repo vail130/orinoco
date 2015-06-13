@@ -15,7 +15,11 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	
+	"gopkg.in/amz.v1/aws"
+	"gopkg.in/amz.v1/s3"
 
+	"github.com/vail130/orinoco/compressutils"
 	"github.com/vail130/orinoco/httputils"
 	"github.com/vail130/orinoco/sliceutils"
 	"github.com/vail130/orinoco/stringutils"
@@ -149,7 +153,40 @@ func (stream *HTTPStream) Process(wg *sync.WaitGroup, streamName string, data []
 
 func (stream *S3Stream) Process(wg *sync.WaitGroup, streamName string, data []byte) {
 	defer wg.Done()
-
+	auth, err := aws.EnvAuth()
+    if err != nil {
+		log.Fatalln(err)
+        return
+    }
+    s3Instance := s3.New(auth, aws.Regions[stream.Region])
+	bucket := s3Instance.Bucket(stream.Bucket)
+	
+	prefix := stream.Prefix
+	now := timeutils.UtcNow()
+	if strings.Contains(prefix, "{{stream}}") {
+		prefix = strings.Replace(prefix, "{{stream}}", streamName, -1)
+	}
+	if strings.Contains(prefix, "{{year}}") {
+		prefix = strings.Replace(prefix, "{{year}}", now.Format("2006"), -1)
+	}
+	if strings.Contains(prefix, "{{month}}") {
+		prefix = strings.Replace(prefix, "{{month}}", now.Format("01"), -1)
+	}
+	if strings.Contains(prefix, "{{day}}") {
+		prefix = strings.Replace(prefix, "{{day}}", now.Format("02"), -1)
+	}
+	
+	unixTimeStamp := strconv.FormatInt(now.Unix(), 10)
+	base64UUID, err := stringutils.GetBase64UUID()
+	if err != nil {
+		log.Fatalln(err)
+		return err
+	}
+	objectKey := stringutils.Concat(prefix, unixTimeStamp, "_", base64UUID, ".gz")
+	
+	compressedData := compressutils.GzipData(data)
+	
+	bucket.Put(objectKey, compressedData, "binary/octet-stream", "private")
 }
 
 func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
