@@ -7,13 +7,16 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/vail130/orinoco/litmus"
+	"github.com/vail130/orinoco/pump"
 	"github.com/vail130/orinoco/sieve"
 )
 
 type Config struct {
-	Port     string                `yaml:"port"`
-	Streams  [](map[string]string) `yaml:"streams"`
-	Triggers []litmus.Trigger      `yaml:"triggers"`
+	Port          string                `yaml:"port"`
+	MinBatchSize  int                   `yaml:"min_batch_size"`
+	MaxBatchDelay int                   `yaml:"max_batch_delay"`
+	Streams       [](map[string]string) `yaml:"streams"`
+	Triggers      []litmus.Trigger      `yaml:"triggers"`
 }
 
 func Orinoco(configPath string) {
@@ -27,5 +30,7 @@ func Orinoco(configPath string) {
 
 	go litmus.Litmus(config.Triggers)
 
-	sieve.Sieve(config.Port, config.Streams)
+	eventChannel := make(chan *sieve.Event)
+	go pump.Pump(config.MinBatchSize, config.MaxBatchDelay, config.Streams, eventChannel)
+	sieve.Sieve(config.Port, eventChannel)
 }

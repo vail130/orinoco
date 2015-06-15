@@ -27,13 +27,10 @@ func (s *SieveApiTestSuite) TestSieveReturnsNullWhenNoStreamsHaveBeenPosted(c *c
 }
 
 func (s *SieveApiTestSuite) TestSieveReturnsStreamSummaryAfterReceivingData(c *check.C) {
-	var url string
-
-	url = stringutils.Concat(streamUrl, "/test")
 	jsonData := []byte(`{"a":1}`)
-	httputils.PostDataToUrl(url, "application/json", jsonData)
+	httputils.PostDataToUrl(testStreamUrl, "application/json", jsonData)
 
-	data, _ := httputils.GetDataFromUrl(url)
+	data, _ := httputils.GetDataFromUrl(testStreamUrl)
 
 	var streamSummary sieve.StreamSummary
 	json.Unmarshal(data, &streamSummary)
@@ -43,7 +40,7 @@ func (s *SieveApiTestSuite) TestSieveReturnsStreamSummaryAfterReceivingData(c *c
 
 func (s *SieveApiTestSuite) TestSieveReturnsNullForAllStreamsAfterResetting(c *check.C) {
 	jsonData := []byte(`{"a":1}`)
-	httputils.PostDataToUrl(stringutils.Concat(streamUrl, "/test"), "application/json", jsonData)
+	httputils.PostDataToUrl(testStreamUrl, "application/json", jsonData)
 
 	httputils.Delete(streamUrl)
 
@@ -53,7 +50,7 @@ func (s *SieveApiTestSuite) TestSieveReturnsNullForAllStreamsAfterResetting(c *c
 
 func (s *SieveApiTestSuite) TestSieveReturnsNullForIndividualStreamAfterResetting(c *check.C) {
 	jsonData := []byte(`{"a":1}`)
-	httputils.PostDataToUrl(stringutils.Concat(streamUrl, "/test"), "application/json", jsonData)
+	httputils.PostDataToUrl(testStreamUrl, "application/json", jsonData)
 
 	httputils.Delete(streamUrl)
 

@@ -1,5 +1,3 @@
-- Configurable stream batching to s3
-
 - Save stream to Postgres
 - Save stream to MySQL
 - Save stream to Redis
@@ -10,7 +8,6 @@
 ===================================================
 
 - Decide what to do with tap
-- Decide what to do with pump
 - Save stream to websocket
 - Set up CI (Travis?)
 - Split unit and integration tests (http://peter.bourgon.org/go-in-production/#testing-and-validation)

@@ -17,7 +17,7 @@ type SieveStreamsTestSuite struct{}
 
 var _ = check.Suite(&SieveStreamsTestSuite{})
 
-const streamUrl = "http://localhost:9966/streams"
+const streamUrl = "http://localhost:9966/streams/"
 const testStreamUrl = "http://localhost:9966/streams/test"
 
 func (s *SieveStreamsTestSuite) SetUpTest(c *check.C) {

@@ -8,9 +8,14 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	
+
 	"github.com/vail130/orinoco/timeutils"
 )
+
+type Event struct {
+	Stream string
+	Data   []byte
+}
 
 type StreamSummary struct {
 	Stream                   string  `json:"stream"`
@@ -38,7 +43,7 @@ var dateMap = make(map[string](map[string](map[string]int)))
 var dateKeyMap = make(map[string]time.Time)
 
 func getTimestampForRequest(queryValues url.Values, data []byte) time.Time {
-	if !isTestEnv {
+	if !sieveConfig.IsTestEnv {
 		return timeutils.UtcNow()
 	}
 
@@ -90,46 +95,24 @@ func trackStreamForTime(stream string, t time.Time) {
 }
 
 func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	streamName := vars["stream"]
-
 	defer r.Body.Close()
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		data = make([]byte, 0)
 	}
-
+	
+	vars := mux.Vars(r)
+	streamName := vars["stream"]
+	
 	t := getTimestampForRequest(r.URL.Query(), data)
 	trackStreamForTime(streamName, t)
 
-	for i := 0; i < len(configuredStreams); i++ {
-		switch {
-
-		case configuredStreams[i]["type"] == "stdout":
-			stream := StdoutStream{}
-			go stream.Process(streamName, data)
-
-		case configuredStreams[i]["type"] == "log":
-			stream := LogStream{
-				configuredStreams[i]["path"],
-			}
-			go stream.Process(streamName, data)
-
-		case configuredStreams[i]["type"] == "http":
-			stream := HTTPStream{
-				configuredStreams[i]["url"],
-			}
-			go stream.Process(streamName, data)
-
-		case configuredStreams[i]["type"] == "s3":
-			stream := S3Stream{
-				configuredStreams[i]["region"],
-				configuredStreams[i]["bucket"],
-				configuredStreams[i]["prefix"],
-			}
-			go stream.Process(streamName, data)
-
-		}
+	event := &Event{
+		streamName,
+		data,
 	}
+
+	sieveConfig.EventChannel <- event
+	
 	w.WriteHeader(http.StatusOK)
 }

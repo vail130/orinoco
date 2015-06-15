@@ -8,16 +8,20 @@ import (
 
 func GetDataFromUrl(url string) ([]byte, error) {
 	response, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
-	data, err := ioutil.ReadAll(response.Body)
-	return data, err
+	return ioutil.ReadAll(response.Body)
 }
 
 func PostDataToUrl(url string, contentType string, data []byte) ([]byte, error) {
 	response, err := http.Post(url, contentType, bytes.NewBuffer(data))
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
-	responseData, err := ioutil.ReadAll(response.Body)
-	return responseData, err
+	return ioutil.ReadAll(response.Body)
 }
 
 func Delete(url string) ([]byte, error) {
@@ -26,7 +30,9 @@ func Delete(url string) ([]byte, error) {
 		return make([]byte, 0), err
 	}
 	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	defer response.Body.Close()
-	responseData, err := ioutil.ReadAll(response.Body)
-	return responseData, err
+	return ioutil.ReadAll(response.Body)
 }

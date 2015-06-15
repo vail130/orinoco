@@ -1,6 +1,7 @@
 package sieve
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"syscall"
@@ -10,25 +11,33 @@ import (
 	"github.com/vail130/orinoco/stringutils"
 )
 
-var isTestEnv bool
-var configuredStreams [](map[string]string)
+type SieveConfig struct {
+	IsTestEnv bool
+	EventChannel chan *Event
+}
 
-func Sieve(port string, streams [](map[string]string)) {
-	isTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
-	configuredStreams = streams
+var sieveConfig SieveConfig
+
+func Sieve(port string, eventChannel chan *Event) {
+	sieveConfig = SieveConfig{
+		stringutils.StringToBool(os.Getenv("TEST")),
+		eventChannel,
+	}
 
 	r := mux.NewRouter()
-	r.HandleFunc("/streams", GetAllStreamsHandler).Methods("GET")
-	r.HandleFunc("/streams", DeleteAllStreamsHandler).Methods("DELETE")
-	r.HandleFunc("/streams/{stream}", GetStreamHandler).Methods("GET")
-	r.HandleFunc("/streams/{stream}", PostStreamHandler).Methods("POST")
-	//	r.HandleFunc("/subscribe", SubscribeHandler)
+	s := r.PathPrefix("/streams").Subrouter()
+	
+	s.HandleFunc("/", GetAllStreamsHandler).Methods("GET")
+	s.HandleFunc("/", DeleteAllStreamsHandler).Methods("DELETE")
+	s.HandleFunc("/{stream}", GetStreamHandler).Methods("GET")
+	s.HandleFunc("/{stream}", PostStreamHandler).Methods("POST")
+	
 	http.Handle("/", r)
 
 	port = stringutils.Concat(":", port)
 
 	err := http.ListenAndServe(port, nil)
 	if err != nil && err != syscall.EPIPE {
-		panic("ListenAndServe: " + err.Error())
+		log.Fatalln(err)
 	}
 }

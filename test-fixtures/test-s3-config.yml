@@ -1,4 +1,6 @@
 port: 9966
+min_batch_size: 100
+max_batch_delay: 5
 streams:
   -
     type: s3
