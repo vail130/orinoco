@@ -1,4 +1,4 @@
-# Orinoco
+# Orinoco !(Build Status)[https://travis-ci.org/vail130/orinoco.svg?branch=master]
 Orinoco forks your data stream, maintains statistics on stream activity,
 monitors the state of the data stream and triggers custom, configurable
 events. Its main components include Sieve, which forks and forwards the
