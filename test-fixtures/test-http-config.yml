@@ -4,10 +4,10 @@ max_batch_delay: 0
 streams:
   -
     type: http
-    url: http://localhost:8080/streams/{{stream}}
+    url: http://localhost:8080/streams/{{stream}}/
 triggers:
   -
     stream: test2
     metric: minute_to_date
     condition: ">10"
-    endpoint: http://localhost:9966/streams/test2_stream_more_than_10_per_minute
+    endpoint: http://localhost:9966/streams/test2_stream_more_than_10_per_minute/

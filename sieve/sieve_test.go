@@ -2,13 +2,13 @@ package sieve_test
 
 import (
 	"encoding/json"
+	"log"
 	"testing"
 
 	"gopkg.in/check.v1"
 
 	"github.com/vail130/orinoco/httputils"
 	"github.com/vail130/orinoco/sieve"
-	"github.com/vail130/orinoco/stringutils"
 )
 
 func TestSieveApi(t *testing.T) { check.TestingT(t) }
@@ -22,7 +22,8 @@ func (s *SieveApiTestSuite) SetUpTest(c *check.C) {
 }
 
 func (s *SieveApiTestSuite) TestSieveReturnsNullWhenNoStreamsHaveBeenPosted(c *check.C) {
-	data, _ := httputils.GetDataFromUrl(streamUrl)
+	data, err := httputils.GetDataFromUrl(streamUrl)
+	log.Print(err)
 	c.Assert(string(data), check.Equals, "null")
 }
 
@@ -54,6 +55,6 @@ func (s *SieveApiTestSuite) TestSieveReturnsNullForIndividualStreamAfterResettin
 
 	httputils.Delete(streamUrl)
 
-	data, _ := httputils.GetDataFromUrl(stringutils.Concat(streamUrl, "/test"))
+	data, _ := httputils.GetDataFromUrl(testStreamUrl)
 	c.Assert(string(data), check.Equals, "null")
 }

@@ -43,5 +43,4 @@ build-docker-images:
 push-docker-images:
 	docker push vail130/orinoco-base
 	docker push vail130/orinoco-test
-	docker push vail130/orinoco-test-s3
 	docker push vail130/orinoco-orinoco

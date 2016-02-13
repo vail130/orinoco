@@ -42,7 +42,7 @@ const secondKeyFormat = "2006-01-02-15-04-05"
 var dateMap = make(map[string](map[string](map[string]int)))
 var dateKeyMap = make(map[string]time.Time)
 
-func getTimestampForRequest(queryValues url.Values, data []byte) time.Time {
+func GetTimestampForRequest(queryValues url.Values, data []byte) time.Time {
 	if !sieveConfig.IsTestEnv {
 		return timeutils.UtcNow()
 	}
@@ -100,11 +100,11 @@ func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		data = make([]byte, 0)
 	}
-	
+
 	vars := mux.Vars(r)
 	streamName := vars["stream"]
-	
-	t := getTimestampForRequest(r.URL.Query(), data)
+
+	t := GetTimestampForRequest(r.URL.Query(), data)
 	trackStreamForTime(streamName, t)
 
 	event := &Event{
@@ -113,6 +113,6 @@ func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sieveConfig.EventChannel <- event
-	
+
 	w.WriteHeader(http.StatusOK)
 }

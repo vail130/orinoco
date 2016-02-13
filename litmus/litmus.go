@@ -2,6 +2,8 @@ package litmus
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"log"
 	"reflect"
 	"regexp"
@@ -33,6 +35,8 @@ type TriggerRequest struct {
 	Value   interface{} `json:"value"`
 }
 
+var triggers []Trigger
+
 func triggerStream(stream string, trigger Trigger, metricValue interface{}) {
 	triggerRequest := TriggerRequest{
 		stream,
@@ -46,7 +50,11 @@ func triggerStream(stream string, trigger Trigger, metricValue interface{}) {
 		return
 	}
 
-	httputils.PostDataToUrl(trigger.Endpoint, "application/json", jsonData)
+	_, err = httputils.PostDataToUrl(trigger.Endpoint, "application/json", jsonData)
+	if err != nil {
+		// TODO: Retry or error log?
+		log.Print(err)
+	}
 }
 
 func evaluateTriggerForStreamSummary(trigger Trigger, streamSummary sieve.StreamSummary) {
@@ -100,7 +108,10 @@ func evaluateTriggerForStreamSummary(trigger Trigger, streamSummary sieve.Stream
 	}
 }
 
-func evaluateStreamSummaries(triggers []Trigger, streamSummaries []sieve.StreamSummary) {
+func evaluateTriggers(now time.Time) {
+	streamMap := sieve.GetStreamMapForTime(now)
+	streamSummaries := sieve.GetAllStreamSummaries(now, streamMap)
+
 	for i := 0; i < len(triggers); i++ {
 		for j := 0; j < len(streamSummaries); j++ {
 			evaluateTriggerForStreamSummary(triggers[i], streamSummaries[j])
@@ -108,13 +119,25 @@ func evaluateStreamSummaries(triggers []Trigger, streamSummaries []sieve.StreamS
 	}
 }
 
-func Litmus(triggers []Trigger) {
+func PutEvaluateLitmusTriggersHandler(w http.ResponseWriter, r *http.Request) {
+	// This is a test endpoint for doing deterministic integration tests
+	defer r.Body.Close()
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		data = make([]byte, 0)
+	}
+
+	t := sieve.GetTimestampForRequest(r.URL.Query(), data)
+	evaluateTriggers(t)
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func Litmus(configTriggers []Trigger) {
+	triggers = configTriggers
 	for {
 		time.Sleep(time.Second)
-
 		now := timeutils.UtcNow()
-		streamMap := sieve.GetStreamMapForTime(now)
-		streamSummaries := sieve.GetAllStreamSummaries(now, streamMap)
-		evaluateStreamSummaries(triggers, streamSummaries)
+		evaluateTriggers(now)
 	}
 }
