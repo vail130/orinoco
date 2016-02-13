@@ -42,15 +42,15 @@ func forkStream(streams [](map[string]string), eventArray []sieve.Event) {
 func Pump(minBatchSize int, maxBatchDelay int, streams [](map[string]string), eventChannel chan *sieve.Event) {
 	var start time.Time
 	var now time.Time
-	
+
 	for {
 		start = timeutils.UtcNow()
 		eventArray := make([]sieve.Event, 0)
-		
+
 		for event := range eventChannel {
 			eventArray = append(eventArray, *event)
 			now = timeutils.UtcNow()
-			
+
 			if now.Sub(start) >= time.Duration(maxBatchDelay) || len(eventChannel) >= minBatchSize {
 				forkStream(streams, eventArray)
 				start = now

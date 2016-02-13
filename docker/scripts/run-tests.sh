@@ -26,7 +26,7 @@ function wait_for_port() {
 }
 
 if [ "${TEST_SVC}" == "http" ]; then
-	/usr/local/bin/reflect --port 8080 &> ${PROJECT_DIR}/artifacts/reflect.log &
+	python ${PROJECT_DIR}/docker/scripts/reflect.py --port 8080 &> ${PROJECT_DIR}/artifacts/reflect.log &
 	REFLECT_PID=$!
 	wait_for_port 8080
 fi
@@ -53,15 +53,20 @@ EOM
 # Run all packages or only one specified in environment.
 # Allows testing one package.
 cd ${PROJECT_DIR}
+
+CHILD_PIDS=""
 for pkg in $PACKAGES; do
 	if [ -z ${TEST_PKG} ] || [ "${TEST_PKG}" == "${pkg}" ]; then
-		/usr/bin/go test github.com/vail130/orinoco/${pkg}
+		/usr/bin/go test github.com/vail130/orinoco/${pkg} &
+		CHILD_PIDS="${CHILD_PIDS} $!"
 	fi
 done
 
-# Kill child processes
-kill $ORINOCO_PID 
+wait ${CHILD_PIDS}
 
 if [ "${TEST_SVC}" == "http" ]; then
 	kill $REFLECT_PID
 fi
+
+# Kill child processes
+kill $ORINOCO_PID

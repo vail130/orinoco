@@ -36,17 +36,17 @@ type S3Stream struct {
 
 func indexEventsByStream(eventArray []sieve.Event) map[string]([]byte) {
 	streamMap := make(map[string]([]byte))
-	
+
 	for i := 0; i < len(eventArray); i++ {
 		event := eventArray[i]
-		
+
 		if _, ok := streamMap[event.Stream]; !ok {
 			streamMap[event.Stream] = make([]byte, 0)
 		}
-		
+
 		streamMap[event.Stream] = sliceutils.ConcatByteSlices(streamMap[event.Stream], event.Data, []byte("\n"))
 	}
-	
+
 	return streamMap
 }
 
@@ -56,18 +56,19 @@ func (stream *StdoutStream) Process(eventArray []sieve.Event) {
 		event := eventArray[i]
 		outputString = stringutils.Concat(string(event.Data), "\n")
 	}
-	
+
 	fmt.Print(outputString)
 }
 
 func (stream *LogStream) Process(eventArray []sieve.Event) {
 	streamMap := indexEventsByStream(eventArray)
-	
+
 	for streamName, data := range streamMap {
 		os.MkdirAll(path.Dir(stream.Path), 0666)
 		logFile := filepath.Join(stream.Path, stringutils.Concat(streamName, ".log"))
 		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
+			// TODO: Should this be fatal? Probably not. If so, detect earlier!
 			log.Fatalln(err)
 			continue
 		}
@@ -78,23 +79,24 @@ func (stream *LogStream) Process(eventArray []sieve.Event) {
 }
 
 func (stream *HTTPStream) Process(eventArray []sieve.Event) {
-	// TODO Batch (?)
+	// TODO: Batch (?)
 	for i := 0; i < len(eventArray); i++ {
 		event := eventArray[i]
 		url := stream.URL
 		if strings.Contains(url, "{{stream}}") {
 			url = strings.Replace(url, "{{stream}}", event.Stream, -1)
 		}
+
 		_, err := httputils.PostDataToUrl(url, "application/json", event.Data)
 		if err != nil {
-			log.Fatalln(err)
+			// TODO: Log to error log? Retry?
 		}
 	}
 }
 
 func (stream *S3Stream) Process(eventArray []sieve.Event) {
 	streamMap := indexEventsByStream(eventArray)
-	
+
 	for streamName, data := range streamMap {
 		auth, err := aws.EnvAuth()
 		if err != nil {
