@@ -25,7 +25,7 @@ type Config struct {
 	Triggers      []litmus.Trigger      `yaml:"triggers"`
 }
 
-func Orinoco(configPath string) {
+func makeConfig(configPath string) Config {
 	configData, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		log.Fatal(err)
@@ -35,16 +35,20 @@ func Orinoco(configPath string) {
 	yaml.Unmarshal(configData, &config)
 	config.IsTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
 
-	go litmus.Litmus(config.Triggers)
+	return config
+}
 
+func startServices(config Config) {
+	go litmus.Litmus(config.Triggers)
 	eventChannel := make(chan *sieve.Event)
 	go pump.Pump(config.MinBatchSize, config.MaxBatchDelay, config.Streams, eventChannel)
 	sieve.Sieve(eventChannel)
+}
 
+func runWebServer(config Config) {
 	r := mux.NewRouter()
 
 	s := r.PathPrefix("/streams").Subrouter()
-
 	s.HandleFunc("/", sieve.GetAllStreamsHandler).Methods("GET")
 	s.HandleFunc("/", sieve.DeleteAllStreamsHandler).Methods("DELETE")
 	s.HandleFunc("/{stream}/", sieve.GetStreamHandler).Methods("GET")
@@ -54,13 +58,18 @@ func Orinoco(configPath string) {
 		r.HandleFunc("/litmus/triggers/evaluate/", litmus.PutEvaluateLitmusTriggersHandler).Methods("PUT")
 	}
 
-
 	http.Handle("/", r)
 
 	port := stringutils.Concat(":", config.Port)
 
-	err = http.ListenAndServe(port, nil)
+	err := http.ListenAndServe(port, nil)
 	if err != nil && err != syscall.EPIPE {
 		log.Fatalln(err)
 	}
+}
+
+func Orinoco(configPath string) {
+	config := makeConfig(configPath)
+	startServices(config)
+	runWebServer(config)
 }
