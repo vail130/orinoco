@@ -108,7 +108,7 @@ func evaluateTriggerForStreamSummary(trigger Trigger, streamSummary sieve.Stream
 	}
 }
 
-func EvaluateTriggers(now time.Time) {
+func evaluateTriggers(now time.Time) {
 	streamMap := sieve.GetStreamMapForTime(now)
 	streamSummaries := sieve.GetAllStreamSummaries(now, streamMap)
 
@@ -128,7 +128,7 @@ func PutEvaluateLitmusTriggersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := sieve.GetTimestampForRequest(r.URL.Query(), data)
-	EvaluateTriggers(t)
+	evaluateTriggers(t)
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -138,6 +138,6 @@ func Litmus(configTriggers []Trigger) {
 	for {
 		time.Sleep(time.Second)
 		now := timeutils.UtcNow()
-		EvaluateTriggers(now)
+		evaluateTriggers(now)
 	}
 }
