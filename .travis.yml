@@ -10,4 +10,4 @@ go:
   - tip
 
 install: make deps
-script: make test-log
+script: make test-log && make test-http
