@@ -19,6 +19,17 @@ type LogStreamer struct {
 
 type StreamHandler func(string, []byte)
 
+func (logStreamer *LogStreamer) cleanupLogFile() error {
+	if !logStreamer.SaveLogFiles {
+		err := os.Remove(logStreamer.ConsumingPath)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (logStreamer *LogStreamer) prepareLogFile() error {
 	now := time.Now()
 	unixTimeStamp := strconv.FormatInt(now.Unix(), 10)
@@ -34,17 +45,6 @@ func (logStreamer *LogStreamer) prepareLogFile() error {
 	err = os.Rename(logStreamer.LogPath, logStreamer.ConsumingPath)
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (logStreamer *LogStreamer) cleanupLogFile() error {
-	if !logStreamer.SaveLogFiles {
-		err := os.Remove(logStreamer.ConsumingPath)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil

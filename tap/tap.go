@@ -24,6 +24,21 @@ type Config struct {
 
 var loggingPermissions os.FileMode = 0666
 
+func readFromSocket(ws *websocket.Conn, logPath string, boundary string) {
+	boundaryBytes := []byte(boundary)
+
+	for {
+		_, message, err := ws.ReadMessage()
+		if err != nil {
+			log.Fatalln(err)
+			break
+		}
+
+		message = message[:len(message)-len(boundaryBytes)]
+		LogMessage(logPath, message)
+	}
+}
+
 func LogMessage(logPath string, message []byte) {
 	if len(logPath) > 0 {
 		file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, loggingPermissions)
@@ -37,21 +52,6 @@ func LogMessage(logPath string, message []byte) {
 		file.Close()
 	} else {
 		fmt.Println(string(message))
-	}
-}
-
-func readFromSocket(ws *websocket.Conn, logPath string, boundary string) {
-	boundaryBytes := []byte(boundary)
-
-	for {
-		_, message, err := ws.ReadMessage()
-		if err != nil {
-			log.Fatalln(err)
-			break
-		}
-
-		message = message[:len(message)-len(boundaryBytes)]
-		LogMessage(logPath, message)
 	}
 }
 

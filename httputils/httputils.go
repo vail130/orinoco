@@ -6,6 +6,19 @@ import (
 	"net/http"
 )
 
+func Delete(url string) ([]byte, error) {
+	req, err := http.NewRequest("DELETE", url, nil)
+	if err != nil {
+		return make([]byte, 0), err
+	}
+	response, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	return ioutil.ReadAll(response.Body)
+}
+
 func GetDataFromUrl(url string) ([]byte, error) {
 	response, err := http.Get(url)
 	if err != nil {
@@ -30,19 +43,6 @@ func PutDataToUrl(url string, contentType string, data []byte) ([]byte, error) {
 		return make([]byte, 0), err
 	}
 	req.Header.Add("Content-Type", contentType)
-	response, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer response.Body.Close()
-	return ioutil.ReadAll(response.Body)
-}
-
-func Delete(url string) ([]byte, error) {
-	req, err := http.NewRequest("DELETE", url, nil)
-	if err != nil {
-		return make([]byte, 0), err
-	}
 	response, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err

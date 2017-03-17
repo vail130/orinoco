@@ -1,46 +1,36 @@
-default: build
+PACKAGES ?= $$(go list ./... | grep -v '/vendor/')
+FILES ?= $$(find . -type f -name "*.go" | grep -v '/vendor/')
+
+default: clean configure fmt lint test build
+
+all: clean configure build
 
 clean:
 	rm -rf bin
 
+configure:
+	go get github.com/tools/godep
+	go get github.com/axw/gocov/...
+	go get github.com/golang/lint/golint
+	go get github.com/jteeuwen/go-bindata/...
+	go get gopkg.in/check.v1
+	go get
+	go install
+
 build:
 	go build -o bin/orinoco main.go
 
-deps:
-	go get
+fmt:
+	gofmt -l -s -w $(FILES)
 
-# make pkg=PKG svc=SVC
+.PHONY: test
 test:
-	docker run --rm \
-		-e "TEST_PKG=$${pkg}" \
-		-e "TEST_SVC=$${svc:-log}" \
-		-v `pwd`:/go/src/github.com/vail130/orinoco \
-		vail130/orinoco-test
-		
-test-stdout:
-	make test svc=stdout
+	TEST=1 go test -v $(PACKAGES)
 
-test-log:
-	make test svc=log
+lint:
+	go tool vet ./*/*.go \
+		&& find . -name "*.go" -maxdepth 2 | grep -v "templates.go" | xargs -n1 golint
 
-test-http:
-	make test svc=http
-
-test-s3:
-	docker run --rm \
-		-e "TEST_PKG=$${pkg}" \
-		-e "TEST_SVC=s3" \
-		-e "AWS_ACCESS_KEY_ID=$${AWS_ACCESS_KEY_ID}" \
-		-e "AWS_SECRET_ACCESS_KEY=$${AWS_SECRET_ACCESS_KEY}" \
-		-v `pwd`:/go/src/github.com/vail130/orinoco \
-		vail130/orinoco-test
-
-build-docker-images:
-	docker build -t vail130/orinoco-base -f docker/base.Dockerfile docker
-	docker build -t vail130/orinoco-test -f docker/test.Dockerfile docker
-	docker build -t vail130/orinoco-orinoco -f docker/orinoco.Dockerfile docker
-	
-push-docker-images:
-	docker push vail130/orinoco-base
-	docker push vail130/orinoco-test
-	docker push vail130/orinoco-orinoco
+.PHONY: vendor
+vendor:
+	godep save

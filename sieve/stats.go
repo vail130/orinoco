@@ -8,85 +8,16 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func GetStreamMapForTime(t time.Time) map[string](map[string]int) {
-	dateKey := t.Format(dateKeyFormat)
-	streamMap, ok := dateMap[dateKey]
-	if ok == false {
-		dateMap[dateKey] = make(map[string](map[string]int))
-		streamMap = dateMap[dateKey]
-		dateKeyMap[dateKey] = t
-	}
-
-	return streamMap
-}
-
 func deleteObsoleteDateKeysForTime(t time.Time) {
 	// Delete date keys more than 24 hours old
 	startTime := t.AddDate(0, 0, -1)
 	for dateKey, tt := range dateKeyMap {
 		if tt.Year() < startTime.Year() ||
-			(tt.Year() == startTime.Year() && tt.Month() < startTime.Month()) ||
-			(tt.Year() == startTime.Year() && tt.Month() == startTime.Month() && tt.Day() < startTime.Day()) {
+				(tt.Year() == startTime.Year() && tt.Month() < startTime.Month()) ||
+				(tt.Year() == startTime.Year() && tt.Month() == startTime.Month() && tt.Day() < startTime.Day()) {
 			delete(dateKeyMap, dateKey)
 		}
 	}
-}
-
-func GetStreamHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	stream := vars["stream"]
-
-	now := GetTimestampForRequest(r.URL.Query(), nil)
-	streamMap := GetStreamMapForTime(now)
-
-	var jsonData []byte
-
-	if _, ok := streamMap[stream]; ok {
-		streamSummary := *getStreamSummary(now, stream, streamMap)
-
-		var err error
-		jsonData, err = json.Marshal(streamSummary)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		jsonData = []byte("null")
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonData)
-}
-
-func GetAllStreamSummaries(now time.Time, streamMap map[string](map[string]int)) []StreamSummary {
-	var streamSummaries []StreamSummary
-	for stream, _ := range streamMap {
-		streamSummaries = append(streamSummaries, *getStreamSummary(now, stream, streamMap))
-	}
-	return streamSummaries
-}
-
-func GetAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
-	now := GetTimestampForRequest(r.URL.Query(), nil)
-	streamMap := GetStreamMapForTime(now)
-
-	var jsonData []byte
-
-	if len(streamMap) > 0 {
-		streamSummaries := GetAllStreamSummaries(now, streamMap)
-
-		var err error
-		jsonData, err = json.Marshal(streamSummaries)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		jsonData = []byte("null")
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(jsonData)
 }
 
 func getStreamSummary(now time.Time, stream string, streamMap map[string](map[string]int)) *StreamSummary {
@@ -125,7 +56,7 @@ func getStreamSummary(now time.Time, stream string, streamMap map[string](map[st
 	var timeKey3 string
 
 	if timeMap, streamExists := streamMap[stream]; streamExists {
-		for period, _ := range trailingCounts {
+		for period := range trailingCounts {
 			if periodToDate, timeKeyExists := timeMap[now.Format(keyFormats[period])]; timeKeyExists {
 				valuesToDate[period] = periodToDate
 			}
@@ -184,4 +115,73 @@ func DeleteAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
 	dateMap = make(map[string](map[string](map[string]int)))
 	dateKeyMap = make(map[string]time.Time)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func GetAllStreamSummaries(now time.Time, streamMap map[string](map[string]int)) []StreamSummary {
+	var streamSummaries []StreamSummary
+	for stream := range streamMap {
+		streamSummaries = append(streamSummaries, *getStreamSummary(now, stream, streamMap))
+	}
+	return streamSummaries
+}
+
+func GetAllStreamsHandler(w http.ResponseWriter, r *http.Request) {
+	now := GetTimestampForRequest(r.URL.Query(), nil)
+	streamMap := GetStreamMapForTime(now)
+
+	var jsonData []byte
+
+	if len(streamMap) > 0 {
+		streamSummaries := GetAllStreamSummaries(now, streamMap)
+
+		var err error
+		jsonData, err = json.Marshal(streamSummaries)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		jsonData = []byte("null")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+}
+
+func GetStreamHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	stream := vars["stream"]
+
+	now := GetTimestampForRequest(r.URL.Query(), nil)
+	streamMap := GetStreamMapForTime(now)
+
+	var jsonData []byte
+
+	if _, ok := streamMap[stream]; ok {
+		streamSummary := *getStreamSummary(now, stream, streamMap)
+
+		var err error
+		jsonData, err = json.Marshal(streamSummary)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		jsonData = []byte("null")
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(jsonData)
+}
+
+func GetStreamMapForTime(t time.Time) map[string](map[string]int) {
+	dateKey := t.Format(dateKeyFormat)
+	streamMap, ok := dateMap[dateKey]
+	if ok == false {
+		dateMap[dateKey] = make(map[string](map[string]int))
+		streamMap = dateMap[dateKey]
+		dateKeyMap[dateKey] = t
+	}
+
+	return streamMap
 }

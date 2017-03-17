@@ -17,7 +17,7 @@ import (
 )
 
 type Config struct {
-	IsTestEnv    bool
+	IsTestEnv     bool
 	Port          string                `yaml:"port"`
 	MinBatchSize  int                   `yaml:"min_batch_size"`
 	MaxBatchDelay int                   `yaml:"max_batch_delay"`
@@ -36,13 +36,6 @@ func makeConfig(configPath string) Config {
 	config.IsTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
 
 	return config
-}
-
-func startServices(config Config) {
-	go litmus.Litmus(config.Triggers)
-	eventChannel := make(chan *sieve.Event)
-	go pump.Pump(config.MinBatchSize, config.MaxBatchDelay, config.Streams, eventChannel)
-	sieve.Sieve(eventChannel)
 }
 
 func runWebServer(config Config) {
@@ -66,6 +59,13 @@ func runWebServer(config Config) {
 	if err != nil && err != syscall.EPIPE {
 		log.Fatalln(err)
 	}
+}
+
+func startServices(config Config) {
+	go litmus.Litmus(config.Triggers)
+	eventChannel := make(chan *sieve.Event)
+	go pump.Pump(config.MinBatchSize, config.MaxBatchDelay, config.Streams, eventChannel)
+	sieve.Sieve(eventChannel)
 }
 
 func Orinoco(configPath string) {

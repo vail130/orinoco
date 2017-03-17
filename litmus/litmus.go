@@ -3,8 +3,8 @@ package litmus
 import (
 	"encoding/json"
 	"io/ioutil"
-	"net/http"
 	"log"
+	"net/http"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -36,26 +36,6 @@ type TriggerRequest struct {
 }
 
 var triggers []Trigger
-
-func triggerStream(stream string, trigger Trigger, metricValue interface{}) {
-	triggerRequest := TriggerRequest{
-		stream,
-		trigger,
-		metricValue,
-	}
-
-	jsonData, err := json.Marshal(triggerRequest)
-	if err != nil {
-		log.Fatalln(err.Error())
-		return
-	}
-
-	_, err = httputils.PostDataToUrl(trigger.Endpoint, "application/json", jsonData)
-	if err != nil {
-		// TODO: Retry or error log?
-		log.Print(err)
-	}
-}
 
 func evaluateTriggerForStreamSummary(trigger Trigger, streamSummary sieve.StreamSummary) {
 	conditionRegexp, _ := regexp.Compile(`([=<>]+)([0-9.]+)`)
@@ -119,6 +99,35 @@ func evaluateTriggers(now time.Time) {
 	}
 }
 
+func triggerStream(stream string, trigger Trigger, metricValue interface{}) {
+	triggerRequest := TriggerRequest{
+		stream,
+		trigger,
+		metricValue,
+	}
+
+	jsonData, err := json.Marshal(triggerRequest)
+	if err != nil {
+		log.Fatalln(err.Error())
+		return
+	}
+
+	_, err = httputils.PostDataToUrl(trigger.Endpoint, "application/json", jsonData)
+	if err != nil {
+		// TODO: Retry or error log?
+		log.Print(err)
+	}
+}
+
+func Litmus(configTriggers []Trigger) {
+	triggers = configTriggers
+	for {
+		time.Sleep(time.Second)
+		now := timeutils.UtcNow()
+		evaluateTriggers(now)
+	}
+}
+
 func PutEvaluateLitmusTriggersHandler(w http.ResponseWriter, r *http.Request) {
 	// This is a test endpoint for doing deterministic integration tests
 	defer r.Body.Close()
@@ -131,13 +140,4 @@ func PutEvaluateLitmusTriggersHandler(w http.ResponseWriter, r *http.Request) {
 	evaluateTriggers(t)
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func Litmus(configTriggers []Trigger) {
-	triggers = configTriggers
-	for {
-		time.Sleep(time.Second)
-		now := timeutils.UtcNow()
-		evaluateTriggers(now)
-	}
 }

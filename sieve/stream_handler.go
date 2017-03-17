@@ -42,6 +42,30 @@ const secondKeyFormat = "2006-01-02-15-04-05"
 var dateMap = make(map[string](map[string](map[string]int)))
 var dateKeyMap = make(map[string]time.Time)
 
+func trackStreamForTime(stream string, t time.Time) {
+	streamMap := GetStreamMapForTime(t)
+	deleteObsoleteDateKeysForTime(t)
+
+	dateMap, ok := streamMap[stream]
+	if ok == false {
+		streamMap[stream] = make(map[string]int)
+		dateMap = streamMap[stream]
+	}
+
+	timeKeys := []string{
+		t.Format(hourKeyFormat),
+		t.Format(minuteKeyFormat),
+		t.Format(secondKeyFormat),
+	}
+
+	for i := 0; i < len(timeKeys); i++ {
+		if _, ok := dateMap[timeKeys[i]]; ok == false {
+			dateMap[timeKeys[i]] = 0
+		}
+		dateMap[timeKeys[i]] += 1
+	}
+}
+
 func GetTimestampForRequest(queryValues url.Values, data []byte) time.Time {
 	if !sieveConfig.IsTestEnv {
 		return timeutils.UtcNow()
@@ -68,30 +92,6 @@ func GetTimestampForRequest(queryValues url.Values, data []byte) time.Time {
 	}
 
 	return timeutils.UtcNow()
-}
-
-func trackStreamForTime(stream string, t time.Time) {
-	streamMap := GetStreamMapForTime(t)
-	deleteObsoleteDateKeysForTime(t)
-
-	dateMap, ok := streamMap[stream]
-	if ok == false {
-		streamMap[stream] = make(map[string]int)
-		dateMap = streamMap[stream]
-	}
-
-	timeKeys := []string{
-		t.Format(hourKeyFormat),
-		t.Format(minuteKeyFormat),
-		t.Format(secondKeyFormat),
-	}
-
-	for i := 0; i < len(timeKeys); i++ {
-		if _, ok := dateMap[timeKeys[i]]; ok == false {
-			dateMap[timeKeys[i]] = 0
-		}
-		dateMap[timeKeys[i]] += 1
-	}
 }
 
 func PostStreamHandler(w http.ResponseWriter, r *http.Request) {

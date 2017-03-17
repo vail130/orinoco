@@ -2,12 +2,10 @@ port: 9966
 min_batch_size: 0
 max_batch_delay: 0
 streams:
-  -
-    type: http
+  - type: http
     url: http://localhost:8080/streams/{{stream}}/
 triggers:
-  -
-    stream: test2
+  - stream: test2
     metric: minute_to_date
     condition: ">10"
     endpoint: http://localhost:9966/streams/test2_stream_more_than_10_per_minute/

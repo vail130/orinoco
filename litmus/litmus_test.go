@@ -41,7 +41,7 @@ func (s *LitmusTestSuite) TestLitmusTriggersCustomStream(c *check.C) {
 
 	httputils.PutDataToUrl(stringutils.Concat("http://localhost:9966/litmus/triggers/evaluate/?timestamp=", timestamp), "application/json", jsonBytes)
 
-	time.Sleep(time.Second + time.Millisecond * 250)
+	time.Sleep(time.Second + time.Millisecond*250)
 
 	data, err := httputils.GetDataFromUrl("http://localhost:9966/streams/test2_stream_more_than_10_per_minute/")
 	c.Assert(err, check.IsNil)

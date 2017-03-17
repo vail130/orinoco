@@ -30,12 +30,6 @@ func addClient(ws *websocket.Conn) {
 	ActiveClientsRWMutex.Unlock()
 }
 
-func deleteClient(ws *websocket.Conn) {
-	ActiveClientsRWMutex.Lock()
-	delete(ActiveClients, ws.RemoteAddr())
-	ActiveClientsRWMutex.Unlock()
-}
-
 func broadcastOverWebsocket(messageType int, message []byte) {
 	ActiveClientsRWMutex.Lock()
 	defer ActiveClientsRWMutex.Unlock()
@@ -48,6 +42,12 @@ func broadcastOverWebsocket(messageType int, message []byte) {
 			deleteClient(ws)
 		}
 	}
+}
+
+func deleteClient(ws *websocket.Conn) {
+	ActiveClientsRWMutex.Lock()
+	delete(ActiveClients, ws.RemoteAddr())
+	ActiveClientsRWMutex.Unlock()
 }
 
 func SubscribeHandler(w http.ResponseWriter, r *http.Request) {

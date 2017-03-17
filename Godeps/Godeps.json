@@ -1,31 +1,34 @@
 {
 	"ImportPath": "github.com/vail130/orinoco",
-	"GoVersion": "go1.4.2",
+	"GoVersion": "go1.8",
+	"GodepVersion": "v77",
 	"Deps": [
 		{
 			"ImportPath": "github.com/alecthomas/template",
-			"Rev": "c08b835da7d1f28aa5b914921b914071be8d2d5c"
+			"Rev": "a0175ee3bccc567396460bf5acd36800cb10c49c"
+		},
+		{
+			"ImportPath": "github.com/alecthomas/template/parse",
+			"Rev": "a0175ee3bccc567396460bf5acd36800cb10c49c"
 		},
 		{
 			"ImportPath": "github.com/alecthomas/units",
-			"Rev": "6b4e7dc5e3143b85ea77909c72caf89416fc2915"
-		},
-		{
-			"ImportPath": "github.com/gorilla/context",
-			"Rev": "215affda49addc4c8ef7e2534915df2c8c35c6cd"
+			"Rev": "2efee857e7cfd4f3d0138cc3cbb1b4966962b93a"
 		},
 		{
 			"ImportPath": "github.com/gorilla/mux",
-			"Rev": "94903de8c98a68d8b4483c529b26a5d146e386a2"
+			"Comment": "v1.3.0-5-g599cba5",
+			"Rev": "599cba5e7b6137d46ddf58fb1765f5d928e69604"
 		},
 		{
 			"ImportPath": "github.com/gorilla/websocket",
-			"Rev": "1551221275a7bd42978745a376b2531f791d88f3"
+			"Comment": "v1.1.0-27-gb258b4f",
+			"Rev": "b258b4fadb573ac412f187b9f31974ea99d32f50"
 		},
 		{
 			"ImportPath": "gopkg.in/alecthomas/kingpin.v2",
-			"Comment": "v2.0.4",
-			"Rev": "f6ab6f63e2d390b0aae35cebd053f6976ad5442b"
+			"Comment": "v2.2.3",
+			"Rev": "e9044be3ab2a8e11d4e1f418d12f0790d57e8d70"
 		},
 		{
 			"ImportPath": "gopkg.in/amz.v1/aws",
@@ -38,12 +41,8 @@
 			"Rev": "ad23e96a31d28364dc0290f44b1a922aba379e18"
 		},
 		{
-			"ImportPath": "gopkg.in/check.v1",
-			"Rev": "64131543e7896d5bcc6bd5a76287eb75ea96c673"
-		},
-		{
 			"ImportPath": "gopkg.in/yaml.v2",
-			"Rev": "49c95bdc21843256fb6c4e0d370a05f24a0bf213"
+			"Rev": "a5b47d31c556af34a302ce5d659e6fea44d90de0"
 		}
 	]
 }

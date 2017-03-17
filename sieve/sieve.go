@@ -7,7 +7,7 @@ import (
 )
 
 type SieveConfig struct {
-	IsTestEnv bool
+	IsTestEnv    bool
 	EventChannel chan *Event
 }
 
