@@ -20,62 +20,29 @@ import (
 	"github.com/vail130/orinoco/timeutils"
 )
 
-type StdoutStream struct{}
-type LogStream struct {
-	Path string
-}
 type HTTPStream struct {
 	URL string
 }
-
+type LogStream struct {
+	Path string
+}
 type S3Stream struct {
 	Region string
 	Bucket string
 	Prefix string
 }
+type StdoutStream struct{}
 
 func indexEventsByStream(eventArray []sieve.Event) map[string]([]byte) {
 	streamMap := make(map[string]([]byte))
-
 	for i := 0; i < len(eventArray); i++ {
 		event := eventArray[i]
-
 		if _, ok := streamMap[event.Stream]; !ok {
 			streamMap[event.Stream] = make([]byte, 0)
 		}
-
 		streamMap[event.Stream] = sliceutils.ConcatByteSlices(streamMap[event.Stream], event.Data, []byte("\n"))
 	}
-
 	return streamMap
-}
-
-func (stream *StdoutStream) Process(eventArray []sieve.Event) {
-	outputString := ""
-	for i := 0; i < len(eventArray); i++ {
-		event := eventArray[i]
-		outputString = stringutils.Concat(string(event.Data), "\n")
-	}
-
-	fmt.Print(outputString)
-}
-
-func (stream *LogStream) Process(eventArray []sieve.Event) {
-	streamMap := indexEventsByStream(eventArray)
-
-	for streamName, data := range streamMap {
-		os.MkdirAll(path.Dir(stream.Path), 0666)
-		logFile := filepath.Join(stream.Path, stringutils.Concat(streamName, ".log"))
-		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err != nil {
-			// TODO: Should this be fatal? Probably not. If so, detect earlier!
-			log.Fatalln(err)
-			continue
-		}
-
-		file.Write(data)
-		file.Close()
-	}
 }
 
 func (stream *HTTPStream) Process(eventArray []sieve.Event) {
@@ -86,7 +53,6 @@ func (stream *HTTPStream) Process(eventArray []sieve.Event) {
 		if strings.Contains(url, "{{stream}}") {
 			url = strings.Replace(url, "{{stream}}", event.Stream, -1)
 		}
-
 		_, err := httputils.PostDataToUrl(url, "application/json", event.Data)
 		if err != nil {
 			// TODO: Log to error log? Retry?
@@ -94,9 +60,24 @@ func (stream *HTTPStream) Process(eventArray []sieve.Event) {
 	}
 }
 
+func (stream *LogStream) Process(eventArray []sieve.Event) {
+	streamMap := indexEventsByStream(eventArray)
+	for streamName, data := range streamMap {
+		os.MkdirAll(path.Dir(stream.Path), 0666)
+		logFile := filepath.Join(stream.Path, stringutils.Concat(streamName, ".log"))
+		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		if err != nil {
+			// TODO: Should this be fatal? Probably not. If so, detect earlier!
+			log.Fatalln(err)
+			continue
+		}
+		file.Write(data)
+		file.Close()
+	}
+}
+
 func (stream *S3Stream) Process(eventArray []sieve.Event) {
 	streamMap := indexEventsByStream(eventArray)
-
 	for streamName, data := range streamMap {
 		auth, err := aws.EnvAuth()
 		if err != nil {
@@ -105,7 +86,6 @@ func (stream *S3Stream) Process(eventArray []sieve.Event) {
 		}
 		s3Instance := s3.New(auth, aws.Regions[stream.Region])
 		bucket := s3Instance.Bucket(stream.Bucket)
-
 		prefix := stream.Prefix
 		now := timeutils.UtcNow()
 		if strings.Contains(prefix, "{{stream}}") {
@@ -120,23 +100,28 @@ func (stream *S3Stream) Process(eventArray []sieve.Event) {
 		if strings.Contains(prefix, "{{day}}") {
 			prefix = strings.Replace(prefix, "{{day}}", now.Format("02"), -1)
 		}
-
 		unixTimeStamp := strconv.FormatInt(now.Unix(), 10)
 		base32UUID, err := stringutils.GetBase32UUID()
 		if err != nil {
 			log.Fatalln(err)
 			continue
 		}
-
 		base32UUID = strings.TrimSuffix(base32UUID, "======")
 		objectKey := stringutils.Concat(prefix, unixTimeStamp, "_", base32UUID, ".gz")
-
 		compressedData := compressutils.GzipData(data)
-
 		err = bucket.Put(objectKey, compressedData, "binary/octet-stream", s3.Private)
 		if err != nil {
 			log.Fatalln(err)
 			continue
 		}
 	}
+}
+
+func (stream *StdoutStream) Process(eventArray []sieve.Event) {
+	outputString := ""
+	for i := 0; i < len(eventArray); i++ {
+		event := eventArray[i]
+		outputString = stringutils.Concat(string(event.Data), "\n")
+	}
+	fmt.Print(outputString)
 }

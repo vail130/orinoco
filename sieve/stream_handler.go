@@ -45,19 +45,16 @@ var dateKeyMap = make(map[string]time.Time)
 func trackStreamForTime(stream string, t time.Time) {
 	streamMap := GetStreamMapForTime(t)
 	deleteObsoleteDateKeysForTime(t)
-
 	dateMap, ok := streamMap[stream]
 	if ok == false {
 		streamMap[stream] = make(map[string]int)
 		dateMap = streamMap[stream]
 	}
-
 	timeKeys := []string{
 		t.Format(hourKeyFormat),
 		t.Format(minuteKeyFormat),
 		t.Format(secondKeyFormat),
 	}
-
 	for i := 0; i < len(timeKeys); i++ {
 		if _, ok := dateMap[timeKeys[i]]; ok == false {
 			dateMap[timeKeys[i]] = 0
@@ -70,27 +67,23 @@ func GetTimestampForRequest(queryValues url.Values, data []byte) time.Time {
 	if !sieveConfig.IsTestEnv {
 		return timeutils.UtcNow()
 	}
-
 	if timestampString, ok := queryValues["timestamp"]; ok {
 		if timestamp, err := time.Parse(time.RFC3339, timestampString[0]); err == nil {
 			return timestamp.UTC()
 		}
 	}
-
 	if len(data) > 0 {
 		var f interface{}
 		err := json.Unmarshal(data, &f)
 		if err != nil {
 			return timeutils.UtcNow()
 		}
-
 		if timestampString, ok := f.(map[string]interface{})["timestamp"]; ok {
 			if timestamp, err := time.Parse(time.RFC3339, timestampString.(string)); err == nil {
 				return timestamp
 			}
 		}
 	}
-
 	return timeutils.UtcNow()
 }
 
@@ -100,19 +93,14 @@ func PostStreamHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		data = make([]byte, 0)
 	}
-
 	vars := mux.Vars(r)
 	streamName := vars["stream"]
-
 	t := GetTimestampForRequest(r.URL.Query(), data)
 	trackStreamForTime(streamName, t)
-
 	event := &Event{
 		streamName,
 		data,
 	}
-
 	sieveConfig.EventChannel <- event
-
 	w.WriteHeader(http.StatusOK)
 }

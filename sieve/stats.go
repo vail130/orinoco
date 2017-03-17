@@ -13,8 +13,8 @@ func deleteObsoleteDateKeysForTime(t time.Time) {
 	startTime := t.AddDate(0, 0, -1)
 	for dateKey, tt := range dateKeyMap {
 		if tt.Year() < startTime.Year() ||
-				(tt.Year() == startTime.Year() && tt.Month() < startTime.Month()) ||
-				(tt.Year() == startTime.Year() && tt.Month() == startTime.Month() && tt.Day() < startTime.Day()) {
+			(tt.Year() == startTime.Year() && tt.Month() < startTime.Month()) ||
+			(tt.Year() == startTime.Year() && tt.Month() == startTime.Month() && tt.Day() < startTime.Day()) {
 			delete(dateKeyMap, dateKey)
 		}
 	}

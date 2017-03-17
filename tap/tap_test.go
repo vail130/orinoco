@@ -36,22 +36,19 @@ func (s *TapTestSuite) TestTapOutputsDataStreamLogFile(c *check.C) {
 		httputils.PostDataToUrl("http://localhost:9966/streams/test", "application/json", jsonBytes)
 		testData = append(testData, jsonBytes)
 	}
-
 	time.Sleep(1 * time.Second)
-
 	logPath, _ := filepath.Abs("../artifacts/tap.log")
 	file, err := os.OpenFile(logPath, os.O_RDONLY, 0666)
 	defer file.Close()
 	c.Assert(err, check.IsNil)
-
 	scanner := bufio.NewScanner(file)
 	i := 0
 	for scanner.Scan() {
 		messageData := scanner.Bytes()
 		if i < len(testData) {
-			var stream sieve.Stream
-			json.Unmarshal(messageData, &stream)
-			c.Assert(stream.Data, check.Equals, string(testData[i]))
+			var event sieve.Event
+			json.Unmarshal(messageData, &event)
+			c.Assert(event.Data, check.Equals, string(testData[i]))
 		}
 		i++
 	}

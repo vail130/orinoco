@@ -30,31 +30,24 @@ func makeConfig(configPath string) Config {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	var config Config
 	yaml.Unmarshal(configData, &config)
 	config.IsTestEnv = stringutils.StringToBool(os.Getenv("TEST"))
-
 	return config
 }
 
 func runWebServer(config Config) {
 	r := mux.NewRouter()
-
 	s := r.PathPrefix("/streams").Subrouter()
 	s.HandleFunc("/", sieve.GetAllStreamsHandler).Methods("GET")
 	s.HandleFunc("/", sieve.DeleteAllStreamsHandler).Methods("DELETE")
 	s.HandleFunc("/{stream}/", sieve.GetStreamHandler).Methods("GET")
 	s.HandleFunc("/{stream}/", sieve.PostStreamHandler).Methods("POST")
-
 	if config.IsTestEnv {
 		r.HandleFunc("/litmus/triggers/evaluate/", litmus.PutEvaluateLitmusTriggersHandler).Methods("PUT")
 	}
-
 	http.Handle("/", r)
-
 	port := stringutils.Concat(":", config.Port)
-
 	err := http.ListenAndServe(port, nil)
 	if err != nil && err != syscall.EPIPE {
 		log.Fatalln(err)

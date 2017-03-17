@@ -39,24 +39,19 @@ var triggers []Trigger
 
 func evaluateTriggerForStreamSummary(trigger Trigger, streamSummary sieve.StreamSummary) {
 	conditionRegexp, _ := regexp.Compile(`([=<>]+)([0-9.]+)`)
-
 	if trigger.Stream == "*" || streamSummary.Stream == trigger.Stream {
 		fieldName := stringutils.UnderscoreToTitle(trigger.Metric)
 		reflectedValue := reflect.ValueOf(streamSummary)
 		metricInterface := reflectedValue.FieldByName(fieldName).Interface()
 		metricValueType := reflect.TypeOf(metricInterface).Name()
-
 		// TODO Refactor this duplicate code
-
 		if metricValueType == "int" {
 			metricValue := int64(reflectedValue.FieldByName(fieldName).Int())
-
 			matches := conditionRegexp.FindAllStringSubmatch(trigger.Condition, -1)
 			num, err := strconv.ParseInt(matches[0][2], 10, 64)
 			if err != nil {
 				return
 			}
-
 			condition := matches[0][1]
 			if (condition == "==" && metricValue == num) ||
 				(condition == ">" && metricValue > num) ||
@@ -65,16 +60,13 @@ func evaluateTriggerForStreamSummary(trigger Trigger, streamSummary sieve.Stream
 				(condition == "<=" && metricValue <= num) {
 				go triggerStream(streamSummary.Stream, trigger, metricValue)
 			}
-
 		} else if metricValueType == "float" {
 			metricValue := float64(reflectedValue.FieldByName(fieldName).Float())
-
 			matches := conditionRegexp.FindAllStringSubmatch(trigger.Condition, -1)
 			num, err := strconv.ParseFloat(matches[0][2], 64)
 			if err != nil {
 				return
 			}
-
 			condition := matches[0][1]
 			if (condition == "==" && metricValue == num) ||
 				(condition == ">" && metricValue > num) ||
@@ -91,7 +83,6 @@ func evaluateTriggerForStreamSummary(trigger Trigger, streamSummary sieve.Stream
 func evaluateTriggers(now time.Time) {
 	streamMap := sieve.GetStreamMapForTime(now)
 	streamSummaries := sieve.GetAllStreamSummaries(now, streamMap)
-
 	for i := 0; i < len(triggers); i++ {
 		for j := 0; j < len(streamSummaries); j++ {
 			evaluateTriggerForStreamSummary(triggers[i], streamSummaries[j])
@@ -105,13 +96,11 @@ func triggerStream(stream string, trigger Trigger, metricValue interface{}) {
 		trigger,
 		metricValue,
 	}
-
 	jsonData, err := json.Marshal(triggerRequest)
 	if err != nil {
 		log.Fatalln(err.Error())
 		return
 	}
-
 	_, err = httputils.PostDataToUrl(trigger.Endpoint, "application/json", jsonData)
 	if err != nil {
 		// TODO: Retry or error log?
@@ -135,9 +124,7 @@ func PutEvaluateLitmusTriggersHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		data = make([]byte, 0)
 	}
-
 	t := sieve.GetTimestampForRequest(r.URL.Query(), data)
 	evaluateTriggers(t)
-
 	w.WriteHeader(http.StatusOK)
 }

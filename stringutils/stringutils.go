@@ -10,11 +10,9 @@ import (
 
 func Concat(strings ...string) string {
 	var buffer bytes.Buffer
-
 	for _, str := range strings {
 		buffer.WriteString(str)
 	}
-
 	return buffer.String()
 }
 
@@ -23,7 +21,6 @@ func GetBase32UUID() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	uuid := make([]byte, 16)
 	devUrandom.Read(uuid)
 	return base32.StdEncoding.EncodeToString([]byte(uuid)), nil
@@ -34,7 +31,6 @@ func GetBase64UUID() (string, error) {
 	if err != nil {
 		return "", err
 	}
-
 	uuid := make([]byte, 16)
 	devUrandom.Read(uuid)
 	return base64.StdEncoding.EncodeToString([]byte(uuid)), nil
@@ -45,7 +41,6 @@ func StringToBool(s string) bool {
 	if s == "" || s == "f" || s == "false" || s == "0" {
 		return false
 	}
-
 	return true
 }
 

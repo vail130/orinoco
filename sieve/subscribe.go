@@ -33,9 +33,7 @@ func addClient(ws *websocket.Conn) {
 func broadcastOverWebsocket(messageType int, message []byte) {
 	ActiveClientsRWMutex.Lock()
 	defer ActiveClientsRWMutex.Unlock()
-
 	message = append(message, sieveBoundary...)
-
 	for _, ws := range ActiveClients {
 		if err := ws.WriteMessage(messageType, message); err != nil {
 			log.Fatalln(err)

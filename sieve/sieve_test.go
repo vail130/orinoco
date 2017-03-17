@@ -30,21 +30,16 @@ func (s *SieveApiTestSuite) TestSieveReturnsNullWhenNoStreamsHaveBeenPosted(c *c
 func (s *SieveApiTestSuite) TestSieveReturnsStreamSummaryAfterReceivingData(c *check.C) {
 	jsonData := []byte(`{"a":1}`)
 	httputils.PostDataToUrl(testStreamUrl, "application/json", jsonData)
-
 	data, _ := httputils.GetDataFromUrl(testStreamUrl)
-
 	var streamSummary sieve.StreamSummary
 	json.Unmarshal(data, &streamSummary)
-
 	c.Assert(streamSummary.Stream, check.Equals, "test")
 }
 
 func (s *SieveApiTestSuite) TestSieveReturnsNullForAllStreamsAfterResetting(c *check.C) {
 	jsonData := []byte(`{"a":1}`)
 	httputils.PostDataToUrl(testStreamUrl, "application/json", jsonData)
-
 	httputils.Delete(streamUrl)
-
 	data, _ := httputils.GetDataFromUrl(streamUrl)
 	c.Assert(string(data), check.Equals, "null")
 }
@@ -52,9 +47,7 @@ func (s *SieveApiTestSuite) TestSieveReturnsNullForAllStreamsAfterResetting(c *c
 func (s *SieveApiTestSuite) TestSieveReturnsNullForIndividualStreamAfterResetting(c *check.C) {
 	jsonData := []byte(`{"a":1}`)
 	httputils.PostDataToUrl(testStreamUrl, "application/json", jsonData)
-
 	httputils.Delete(streamUrl)
-
 	data, _ := httputils.GetDataFromUrl(testStreamUrl)
 	c.Assert(string(data), check.Equals, "null")
 }
